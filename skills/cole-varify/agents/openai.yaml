@@ -1,0 +1,5 @@
+interface:
+  display_name: "Cole Varify"
+  short_description: "Verify Kai hypotheses with build checks, PoCs, and reports"
+  default_prompt: "Use $cole-varify to validate Kai hypotheses, create minimal PoCs, and produce a MasterWu/cole verification report."
+
