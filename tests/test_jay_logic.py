@@ -26,11 +26,12 @@ def assert_has_function(graph: dict, name: str) -> dict:
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
-        print("Usage: test_jay_logic.py <solidity-json> <move-json>", file=sys.stderr)
+    if len(sys.argv) != 4:
+        print("Usage: test_jay_logic.py <solidity-json> <move-json> <anchor-json>", file=sys.stderr)
         return 2
     solidity = load(sys.argv[1])
     move = load(sys.argv[2])
+    anchor = load(sys.argv[3])
 
     deposit = assert_has_function(solidity, "deposit")
     assert deposit["start_line"] > 0 and deposit["end_line"] >= deposit["start_line"]
@@ -41,9 +42,19 @@ def main() -> int:
 
     move_deposit = assert_has_function(move, "deposit")
     assert move_deposit.get("metadata", {}).get("entry_point") is True
+    move_read = assert_has_function(move, "read")
+    assert move_read.get("metadata", {}).get("entry_point") is False
     assert_has_edge(move, "writes", "Balance")
     assert_has_edge(move, "reads", "Balance")
     assert_has_edge(move, "external_call", "signer::address_of")
+
+    anchor_deposit = assert_has_function(anchor, "deposit")
+    assert anchor_deposit.get("metadata", {}).get("entry_point") is True
+    assert anchor_deposit.get("metadata", {}).get("context") == "Deposit"
+    assert_has_edge(anchor, "writes", "Vault")
+    assert_has_edge(anchor, "guards", "deposit guard")
+    assert_has_edge(anchor, "external_call", "token::transfer")
+    assert_has_edge(anchor, "transfers_value", "token::transfer")
     return 0
 
 

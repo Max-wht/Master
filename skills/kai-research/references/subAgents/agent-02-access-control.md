@@ -8,6 +8,11 @@ Other agents cover known patterns, math, state consistency, and economics. You b
 
 **Map the permission model.** Every role, modifier, and inline access check. Who grants what to whom. This map is your weapon — every attack below references it.
 
+Map permission using the runtime-native boundary:
+- Solidity: `msg.sender`, modifiers, owner/role storage, proxy admin, initializer state.
+- Move: `&signer`, resource owner, `AdminCap`/`TreasuryCap`/capability custody, `public(friend)`, package/module authority.
+- Anchor: `Signer<'info>`, account owner, discriminator, `has_one`, PDA seeds/bump, upgrade authority, token authority, unchecked accounts.
+
 **Exploit inconsistent guards.** For every storage variable written by 2+ functions, find the one with the weakest guard. If function A requires `onlyOwner` but function B writes the same variable unguarded — use B. Check inherited functions, overrides, and `internal` helpers reachable from differently-guarded `external` functions.
 
 **Hijack initialization.** Call `initialize()` on the implementation contract directly. Front-run deployment to initialize with your own roles. Pass `address(0)` as a role parameter to permanently lock out admins.

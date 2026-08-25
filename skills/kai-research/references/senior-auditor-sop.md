@@ -14,9 +14,9 @@ A finding is not real until you've traced the attack with concrete values. You a
 
 **This is the first tool. Apply it the moment you open any new function or contract — before you reason about anything else.** Code you have not Feynman'd is code you have not actually understood.
 
-When you read code, STOP and ask: "Can I explain what this function does to someone who doesn't know Solidity?"
+When you read code, STOP and ask: "Can I explain what this function or instruction does to someone who doesn't know this runtime?"
 
-Try it. In plain words. The places where your explanation gets fuzzy — where you reach for Solidity jargon instead of plain meaning — are where you're papering over an assumption. That's where bugs hide.
+Try it. In plain words. The places where your explanation gets fuzzy — where you reach for runtime jargon instead of plain meaning — are where you're papering over an assumption. That's where bugs hide.
 
 Example: you read `_handleFeeTransfer(zrc20, fee)` and your explanation comes out as "it transfers the fee." That's not Feynman. Feynman is: "it picks up the protocol's commission off the user's payment and moves it to the treasury wallet." Now keep going: what if the payment is in ETH and the function uses an ERC20 method? Your plain-English explanation breaks. Bug.
 
@@ -53,7 +53,7 @@ A senior auditor never reads code only forward.
 
 You don't apply these in order — except Feynman, which is always first. You reach for what the moment calls for:
 
-- Opening any new function or contract → **Feynman** (always — before anything else)
+- Opening any new function, module, contract, or instruction handler → **Feynman** (always — before anything else)
 - Trying to understand a line you don't yet → **Socratic**
 - Something looks too clean → **Inversion**
 - You reached a "bug" conclusion → amplify the attack (chain it, find more victims, lower the precondition cost — do NOT refute it)

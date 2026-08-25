@@ -17,6 +17,7 @@ Use Jay Logic as an audit navigation layer.
 - `reads` and `writes` are static lexical relations. Confirm complex aliasing manually before relying on them.
 - `guards` points from a function to a guard node such as `require`, `assert`, or `if ... revert`.
 - `precondition_written_by` links a writer function to a guarded function when one function writes state used by another function's guard.
+- Runtime details are stored in node metadata. For Move, check entry/resource/capability fields. For Anchor, check context/account/PDA/signer/CPI fields.
 
 ## Audit Use
 

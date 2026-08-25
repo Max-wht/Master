@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 /jay-logic/
+/output/
+/tmp/
+/temp-mapping.md

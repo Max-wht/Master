@@ -62,7 +62,9 @@ check_jay_logic() {
   "$PYTHON" "$skill_dir/scripts/jay_logic.py" validate "$TMP/solidity/jay-logic.json"
   "$PYTHON" "$skill_dir/scripts/jay_logic.py" build "$ROOT/tests/fixtures/move" --out "$TMP/move" --lang move
   "$PYTHON" "$skill_dir/scripts/jay_logic.py" validate "$TMP/move/jay-logic.json"
-  "$PYTHON" "$ROOT/tests/test_jay_logic.py" "$TMP/solidity/jay-logic.json" "$TMP/move/jay-logic.json"
+  "$PYTHON" "$skill_dir/scripts/jay_logic.py" build "$ROOT/tests/fixtures/anchor" --out "$TMP/anchor" --lang anchor
+  "$PYTHON" "$skill_dir/scripts/jay_logic.py" validate "$TMP/anchor/jay-logic.json"
+  "$PYTHON" "$ROOT/tests/test_jay_logic.py" "$TMP/solidity/jay-logic.json" "$TMP/move/jay-logic.json" "$TMP/anchor/jay-logic.json"
 }
 
 check_kai_research() {
@@ -78,11 +80,32 @@ check_kai_research() {
 
   "$PYTHON" "$skill_dir/scripts/kai_prepare.py" prepare "$project" --run-id check-kai
   "$PYTHON" "$skill_dir/scripts/kai_prepare.py" prepare "$project" --run-id check-kai-explicit --files lib/ExplicitLibrary.sol
+  local move_project="$TMP/kai-move-project"
+  mkdir -p "$move_project"
+  cp -R "$ROOT/tests/fixtures/move/." "$move_project/"
+  "$PYTHON" "$skill_dir/scripts/kai_prepare.py" prepare "$move_project" --lang move --run-id check-kai-move
+  local anchor_project="$TMP/kai-anchor-project"
+  mkdir -p "$anchor_project"
+  cp -R "$ROOT/tests/fixtures/anchor/." "$anchor_project/"
+  "$PYTHON" "$skill_dir/scripts/kai_prepare.py" prepare "$anchor_project" --lang anchor --run-id check-kai-anchor
+  local mixed_project="$TMP/kai-mixed-project"
+  mkdir -p "$mixed_project"
+  cp -R "$ROOT/tests/fixtures/solidity/." "$mixed_project/"
+  mkdir -p "$mixed_project/sources"
+  cp "$ROOT/tests/fixtures/move/sources/vault.move" "$mixed_project/sources/vault.move"
+  if "$PYTHON" "$skill_dir/scripts/kai_prepare.py" prepare "$mixed_project" --run-id check-kai-mixed >/dev/null 2>&1; then
+    echo "Kai prepare should fail on mixed runtimes when --lang is not set" >&2
+    exit 1
+  fi
   if "$PYTHON" "$skill_dir/scripts/kai_prepare.py" prepare "$project" --run-id check-kai-missing --jay-skill-dir "$TMP/missing-jay" >/dev/null 2>&1; then
     echo "Kai prepare should fail when Jay is missing" >&2
     exit 1
   fi
-  "$PYTHON" "$ROOT/tests/test_kai_research.py" "$project/MasterWu/Kai/runs/check-kai" "$project/MasterWu/Kai/runs/check-kai-explicit"
+  "$PYTHON" "$ROOT/tests/test_kai_research.py" \
+    "$project/MasterWu/Kai/runs/check-kai" \
+    "$project/MasterWu/Kai/runs/check-kai-explicit" \
+    "$move_project/MasterWu/Kai/runs/check-kai-move" \
+    "$anchor_project/MasterWu/Kai/runs/check-kai-anchor"
   "$PYTHON" "$skill_dir/scripts/kai_prepare.py" validate-hypotheses "$project/MasterWu/Kai/runs/check-kai/agents/01-math-precision/hypotheses.json"
 }
 

@@ -1,6 +1,6 @@
 ---
 name: jay-logic
-description: "Function-level smart contract logic mapping for audit preparation. Use when Codex needs to map which functions, source lines, state variables, guards, internal calls, external calls, value transfers, or state transitions are related in Solidity, Move, or another contract language before a security review."
+description: "Function-level smart contract logic mapping for audit preparation. Use when Codex needs to map functions, source lines, state/resources/accounts, guards, internal calls, external calls, value transfers, or state transitions in Solidity, Move, Anchor, or another contract language before a security review."
 ---
 
 # Jay Logic
@@ -18,10 +18,12 @@ python3 "$SKILL_DIR/scripts/jay_logic.py" validate <project-root>/MasterWu/Jay/j
 
 If the user does not provide a project root, use the current working directory. Keep the default repo-local output directory `MasterWu/Jay/` unless the user asks for another path.
 
-For an explicit file set, pass repo-relative Solidity/Move files:
+For an explicit file set, pass repo-relative Solidity, Move, or Anchor files:
 
 ```bash
 python3 "$SKILL_DIR/scripts/jay_logic.py" build <project-root> --out MasterWu/Jay --lang solidity --files src/Vault.sol src/Strategy.sol
+python3 "$SKILL_DIR/scripts/jay_logic.py" build <project-root> --out MasterWu/Jay --lang move --files sources/vault.move
+python3 "$SKILL_DIR/scripts/jay_logic.py" build <project-root> --out MasterWu/Jay --lang anchor --files programs/vault/src/lib.rs
 ```
 
 ## Workflow
@@ -50,7 +52,8 @@ The build command writes:
 Use adapter-based extraction. The core schema is language-neutral; language assumptions belong only in adapter modules.
 
 - `solidity` extracts contracts, functions, modifiers/guards, state vars, events, calls, ERC20-like transfers, native value calls, and simple state transitions.
-- `move` extracts modules, public/entry functions, resources, `acquires`, resource reads/writes, guards, and module calls.
+- `move` extracts modules, entry functions, resources/capabilities, `acquires`, signer/resource metadata, resource reads/writes, guards, and module calls.
+- `anchor` extracts Anchor programs, instruction handlers, account contexts, account state, PDA/seeds/has_one/signer constraints, `require!` guards, CPI calls, token transfers, and lamport/value edges.
 - `generic` is a low-confidence fallback for unsupported languages.
 
 For detailed schema or adapter rules, read only the reference needed:

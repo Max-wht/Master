@@ -1,5 +1,4 @@
 interface:
   display_name: "Cole Varify"
-  short_description: "Verify Kai hypotheses with build checks, PoCs, and reports"
-  default_prompt: "Use $cole-varify to validate Kai hypotheses, create minimal PoCs, and produce a MasterWu/cole verification report."
-
+  short_description: "Verify Kai hypotheses across Solidity, Move, and Anchor"
+  default_prompt: "Use $cole-varify to validate Kai hypotheses, prepare strict Judge subagents, reject fuzzy severity labels, and produce MasterWu/cole/runs/<run-id>/wreport.md."

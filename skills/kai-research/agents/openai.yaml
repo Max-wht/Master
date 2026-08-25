@@ -1,4 +1,4 @@
 interface:
   display_name: "Kai Research"
-  short_description: "Large Solidity vulnerability hypothesis search"
-  default_prompt: "Use $kai-research to prepare Jay-guided parallel vulnerability research bundles for this Solidity repository."
+  short_description: "Large Solidity, Move, and Anchor hypothesis search"
+  default_prompt: "Use $kai-research to prepare Jay-guided parallel vulnerability research bundles for this Solidity, Move, or Anchor repository."

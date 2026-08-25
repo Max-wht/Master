@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.dont_write_bytecode = True
 
-from adapters import generic, move, solidity
+from adapters import anchor, generic, move, solidity
 
 SCHEMA_VERSION = "1.0.0"
 NODE_TYPES = {"function", "statement", "state_var", "guard", "event", "external_symbol", "contract_or_module"}
@@ -50,7 +50,7 @@ REQUIRED_EDGE_FIELDS = {
     "confidence",
     "source_adapter",
 }
-ADAPTERS = {"solidity": solidity, "move": move, "generic": generic}
+ADAPTERS = {"solidity": solidity, "move": move, "anchor": anchor, "generic": generic}
 
 
 def main() -> int:
@@ -60,7 +60,7 @@ def main() -> int:
     build_parser = subparsers.add_parser("build", help="Build jay-logic artifacts")
     build_parser.add_argument("project_root", type=Path)
     build_parser.add_argument("--out", default="MasterWu/Jay", help="Output directory, relative to project root unless absolute")
-    build_parser.add_argument("--lang", default="auto", choices=["auto", "solidity", "move", "generic"], help="Language adapter")
+    build_parser.add_argument("--lang", default="auto", choices=["auto", "solidity", "move", "anchor", "generic"], help="Language adapter")
     build_parser.add_argument("--files", nargs="*", default=None, help="Optional repo-relative or absolute source files to include")
 
     validate_parser = subparsers.add_parser("validate", help="Validate a jay-logic.json file")
@@ -173,7 +173,7 @@ def select_adapters(project_root: Path, lang: str, include_files: list[Path] | N
         adapter = ADAPTERS[lang]
         return [adapter] if adapter.detect(project_root, include_files=include_files) else []
     selected = []
-    for name in ("solidity", "move"):
+    for name in ("solidity", "move", "anchor"):
         adapter = ADAPTERS[name]
         if adapter.detect(project_root, include_files=include_files):
             selected.append(adapter)

@@ -1,4 +1,4 @@
 interface:
   display_name: "Jay Logic"
-  short_description: "Function-level smart contract logic maps"
-  default_prompt: "Use $jay-logic to generate a function-level code logic map for this smart contract repository."
+  short_description: "Function-level Solidity, Move, and Anchor logic maps"
+  default_prompt: "Use $jay-logic to generate a function-level logic map for this Solidity, Move, or Anchor smart contract repository."

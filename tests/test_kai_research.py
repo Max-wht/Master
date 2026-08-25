@@ -42,6 +42,7 @@ def check_default_run(run_dir: Path) -> None:
     manifest = load_json(run_dir / "spawn-manifest.json")
     assert manifest["schema_version"] == "1.0.0"
     assert manifest["run_id"] == "check-kai"
+    assert manifest["runtime"] == "solidity"
     assert len(manifest["agents"]) == 12
 
     scope = (run_dir / "scope.txt").read_text(encoding="utf-8").splitlines()
@@ -62,6 +63,7 @@ def check_default_run(run_dir: Path) -> None:
         assert agent_dir.is_dir()
         bundle = (agent_dir / "bundle.md").read_text(encoding="utf-8")
         assert "## Jay Graph Slice" in bundle
+        assert "## Runtime Semantics" in bundle
         assert "## Full In-Scope Source" in bundle
         assert "src/Vault.sol" in bundle
         report = (agent_dir / "report.md").read_text(encoding="utf-8")
@@ -70,6 +72,8 @@ def check_default_run(run_dir: Path) -> None:
 
 
 def check_explicit_run(run_dir: Path) -> None:
+    manifest = load_json(run_dir / "spawn-manifest.json")
+    assert manifest["runtime"] == "solidity"
     scope = (run_dir / "scope.txt").read_text(encoding="utf-8").splitlines()
     assert scope == ["lib/ExplicitLibrary.sol"], scope
     source = (run_dir / "source.md").read_text(encoding="utf-8")
@@ -80,12 +84,40 @@ def check_explicit_run(run_dir: Path) -> None:
     assert "explicitValue" in first_slice
 
 
+def check_move_run(run_dir: Path) -> None:
+    manifest = load_json(run_dir / "spawn-manifest.json")
+    assert manifest["runtime"] == "move"
+    scope = (run_dir / "scope.txt").read_text(encoding="utf-8").splitlines()
+    assert scope == ["sources/vault.move"], scope
+    source = (run_dir / "source.md").read_text(encoding="utf-8")
+    assert "```move" in source
+    assert "public entry fun deposit" in source
+    bundle = (run_dir / "agents" / "02-access-control" / "bundle.md").read_text(encoding="utf-8")
+    assert "Runtime Semantics" in bundle
+    assert "signer" in bundle
+
+
+def check_anchor_run(run_dir: Path) -> None:
+    manifest = load_json(run_dir / "spawn-manifest.json")
+    assert manifest["runtime"] == "anchor"
+    scope = (run_dir / "scope.txt").read_text(encoding="utf-8").splitlines()
+    assert scope == ["programs/vault/src/lib.rs"], scope
+    source = (run_dir / "source.md").read_text(encoding="utf-8")
+    assert "```rust" in source
+    assert "#[program]" in source
+    first_slice = (run_dir / "jay-slices" / "agent-02-access-control.md").read_text(encoding="utf-8")
+    assert "Deposit.vault constraint" in first_slice
+    assert "token::transfer" in first_slice
+
+
 def main() -> int:
-    if len(sys.argv) != 3:
-        print("Usage: test_kai_research.py <default-run-dir> <explicit-run-dir>", file=sys.stderr)
+    if len(sys.argv) != 5:
+        print("Usage: test_kai_research.py <default-run-dir> <explicit-run-dir> <move-run-dir> <anchor-run-dir>", file=sys.stderr)
         return 2
     check_default_run(Path(sys.argv[1]))
     check_explicit_run(Path(sys.argv[2]))
+    check_move_run(Path(sys.argv[3]))
+    check_anchor_run(Path(sys.argv[4]))
     return 0
 
 

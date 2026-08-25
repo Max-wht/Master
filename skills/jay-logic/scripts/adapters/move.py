@@ -13,13 +13,14 @@ def detect(project_root: Path, include_files: list[Path] | None = None) -> bool:
 
 def collect(project_root: Path, include_files: list[Path] | None = None) -> dict:
     files = list(_iter_files(project_root, include_files=include_files))
+    runtime_profile = _runtime_profile(project_root, files)
     nodes: list[dict] = []
     edges: list[dict] = []
     functions: list[dict] = []
     resources: dict[str, dict] = {}
 
     for path in files:
-        parsed = _parse_file(project_root, path)
+        parsed = _parse_file(project_root, path, runtime_profile)
         nodes.extend(parsed["nodes"])
         functions.extend(parsed["functions"])
         resources.update(parsed["resources"])
@@ -29,7 +30,7 @@ def collect(project_root: Path, include_files: list[Path] | None = None) -> dict
         function_by_name.setdefault(fn["name"], []).append(fn)
 
     for path in files:
-        parsed_edges = _extract_edges(project_root, path, functions, function_by_name, resources)
+        parsed_edges = _extract_edges(project_root, path, functions, function_by_name, resources, runtime_profile)
         nodes.extend(parsed_edges["nodes"])
         edges.extend(parsed_edges["edges"])
 
@@ -89,7 +90,21 @@ def _edge(edge_type: str, source: str, target: str, file: str, line: int, label:
     }
 
 
-def _parse_file(project_root: Path, path: Path) -> dict:
+def _runtime_profile(project_root: Path, files: list[Path]) -> str:
+    manifest = project_root / "Move.toml"
+    haystack = ""
+    if manifest.is_file():
+        haystack += manifest.read_text(errors="ignore").lower()
+    for path in files[:80]:
+        haystack += "\n" + path.read_text(errors="ignore").lower()
+    if "sui::" in haystack or "sui-framework" in haystack or "sui-framework" in haystack:
+        return "sui-move"
+    if "aptos_framework" in haystack or "aptos::" in haystack:
+        return "aptos-move"
+    return "move"
+
+
+def _parse_file(project_root: Path, path: Path, runtime_profile: str) -> dict:
     rel = _rel(project_root, path)
     lines = path.read_text(errors="ignore").splitlines()
     nodes: list[dict] = []
@@ -112,7 +127,7 @@ def _parse_file(project_root: Path, path: Path) -> dict:
                 idx,
                 "medium",
                 id=module_id,
-                metadata={"kind": "module"},
+                metadata={"kind": "module", "runtime_profile": runtime_profile},
             )
             nodes.append(current_module)
 
@@ -130,7 +145,13 @@ def _parse_file(project_root: Path, path: Path) -> dict:
                 "medium",
                 id=res_id,
                 parent_id=current_module["id"],
-                metadata={"kind": "resource"},
+                metadata={
+                    "kind": "resource",
+                    "runtime_profile": runtime_profile,
+                    "abilities": _abilities(code),
+                    "capability_like": name.endswith("Cap") or name.endswith("Capability"),
+                    "coin_like": name in {"Coin", "Balance", "TreasuryCap"} or "Coin<" in code,
+                },
             )
             nodes.append(res_node)
             resources[name] = res_node
@@ -155,7 +176,11 @@ def _parse_file(project_root: Path, path: Path) -> dict:
                 visibility=visibility,
                 metadata={
                     "module": current_module["name"] if current_module else None,
-                    "entry_point": "entry fun" in signature or signature.strip().startswith("public fun"),
+                    "entry_point": "entry fun" in signature,
+                    "runtime_profile": runtime_profile,
+                    "signer_params": len(re.findall(r"&\s*signer\b", signature)),
+                    "acquires": re.findall(r"\bacquires\s+([A-Za-z0-9_,\s]+)", signature),
+                    "coin_types": re.findall(r"Coin\s*<\s*([^>]+)\s*>", signature),
                 },
             )
             nodes.append(fn_node)
@@ -189,7 +214,14 @@ def _scan_signature(lines: list[str], start: int) -> str:
     return " ".join(pieces)
 
 
-def _extract_edges(project_root: Path, path: Path, functions: list[dict], function_by_name: dict[str, list[dict]], resources: dict[str, dict]) -> dict:
+def _abilities(code: str) -> list[str]:
+    match = re.search(r"\bhas\s+([^{};]+)", code)
+    if not match:
+        return []
+    return [item.strip() for item in re.split(r"[, ]+", match.group(1)) if item.strip()]
+
+
+def _extract_edges(project_root: Path, path: Path, functions: list[dict], function_by_name: dict[str, list[dict]], resources: dict[str, dict], runtime_profile: str) -> dict:
     rel = _rel(project_root, path)
     lines = path.read_text(errors="ignore").splitlines()
     nodes: list[dict] = []
@@ -203,9 +235,20 @@ def _extract_edges(project_root: Path, path: Path, functions: list[dict], functi
             if not code:
                 continue
 
-            if "assert!" in code:
+            if "assert!" in code or re.search(r"\babort\b", code):
                 guard_id = _stable_id("guard", rel, fn["name"], offset)
-                guard = _node("guard", rel, f"{fn['name']} guard", code, offset, offset, "medium", id=guard_id, parent_id=fn["id"])
+                guard = _node(
+                    "guard",
+                    rel,
+                    f"{fn['name']} guard",
+                    code,
+                    offset,
+                    offset,
+                    "medium",
+                    id=guard_id,
+                    parent_id=fn["id"],
+                    metadata={"runtime_profile": runtime_profile, "kind": "abort_or_assert"},
+                )
                 nodes.append(guard)
                 edges.append(_edge("guards", fn["id"], guard_id, rel, offset, code))
 
@@ -213,7 +256,17 @@ def _extract_edges(project_root: Path, path: Path, functions: list[dict], functi
                 res_node = resources.get(res_name)
                 if not res_node:
                     res_id = _stable_id("resource", rel, res_name)
-                    res_node = _node("state_var", rel, res_name, res_name, offset, offset, "low", id=res_id, metadata={"kind": "resource"})
+                    res_node = _node(
+                        "state_var",
+                        rel,
+                        res_name,
+                        res_name,
+                        offset,
+                        offset,
+                        "low",
+                        id=res_id,
+                        metadata={"kind": "resource", "runtime_profile": runtime_profile},
+                    )
                     resources[res_name] = res_node
                     nodes.append(res_node)
                 edge_type = "writes" if any(word in code for word in ("borrow_global_mut", "move_to", "move_from")) else "reads"

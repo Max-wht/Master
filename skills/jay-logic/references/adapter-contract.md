@@ -39,3 +39,5 @@ The core CLI handles schema validation, post-processing, markdown rendering, Mer
 ## Adding Languages
 
 Add a new adapter file under `scripts/adapters/`, import it in `scripts/jay_logic.py`, and update the `--lang` choices. Do not change the core JSON schema unless the existing node/edge model cannot represent the language.
+
+Runtime-specific details should live in `metadata`, not new top-level schema fields. Examples: `runtime_profile`, `entry_point`, Move capability/resource facts, Anchor context names, account constraints, PDA/seeds, signer fields, token program facts, or CPI classification.

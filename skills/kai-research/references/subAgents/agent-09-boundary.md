@@ -13,6 +13,8 @@ For each contract in scope, list every:
 - Function that takes a token/contract address as parameter (from caller, decoded message, or storage)
 - Function with a `bytes` / `bytes calldata` input that is decoded
 - Any place an external return value is consumed by caller logic
+- Move module call, friend call, object/resource target, `Coin<T>` or object/resource input, dynamic table/object key, and BCS/type-tag decode.
+- Anchor CPI, `remaining_accounts`, `UncheckedAccount`, PDA/account seeds, account owner/discriminator check, token program/mint/token-account input, and lamport/token-account balance read.
 
 This list is your work plan. Apply Steps 2-5 to every entry.
 
@@ -30,6 +32,8 @@ For each call site identified in Step 1, ask:
 8. **ERC721 hook re-entry.** `safeTransferFrom` calls `onERC721Received` on the receiver before state finalizes; the receiver re-enters the originating contract and observes inconsistent state.
 9. **Unrestricted external call from custody.** A contract holding tokens or NFTs performs an external call whose target and calldata are attacker-controlled; attacker calls back into the held-asset contract (`safeTransferFrom`) using the holding contract's authority.
 10. **Caller-supplied fee/bonus has no upper bound.** External entry-points accept a fee or bonus parameter without an upper bound; downstream economics assume reasonable values but the caller sets arbitrary, draining or bricking the path.
+11. **Wrong runtime identity.** Move code trusts symbol/metadata instead of full type path, or Anchor code trusts account shape without owner/discriminator/mint/token-program validation.
+12. **Writable external state changes mid-flow.** Anchor CPI or Token-2022 hooks mutate writable accounts before the caller reloads them; Move module/resource calls change object/resource state the caller assumes is unchanged.
 
 For every call site that fails any of the questions in a way the calling code doesn't account for — finding.
 
@@ -58,6 +62,11 @@ For every `bytes` input or `abi.decode`:
 3. `bytes20(longerBytes)` cast — silent truncation. Source can be longer than 20 (BTC bech32, Solana 32-byte, attacker-chosen length).
 4. `abi.encodePacked` followed by `abi.decode` — packed encoding is ambiguous; decode returns wrong field boundaries.
 5. Field-order mismatches across encode and decode sites in different files — silent reinterpretation of attacker bytes.
+
+For Move and Anchor serialization:
+1. BCS/type-tag or object-id mismatch — data decodes but points to the wrong resource/object type.
+2. Anchor/Borsh discriminator mismatch — account data is accepted without validating the discriminator or owner.
+3. IDL/client encoding mismatch — off-chain or CPI caller serializes fields in an order the handler interprets differently.
 
 ## Discipline
 

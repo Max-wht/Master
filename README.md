@@ -1,6 +1,6 @@
 # MasterWu Skill Repository
 
-MasterWu is the parent repository for local audit skills. Each skill is a standalone bundle under `skills/`.
+MasterWu is the parent repository for local audit skills. Each skill is a standalone bundle under `skills/`. The core audit pipeline is `jay-logic -> kai-research -> cole-varify` and supports Solidity, Move, and Anchor/Solana runtime profiles.
 
 ## Tree
 
@@ -81,4 +81,4 @@ Install one skill to one target:
 ./scripts/install.sh claude cole-varify
 ```
 
-The scripts discover skills from `skills/*/SKILL.md`. Jay-specific fixture tests are run when `jay-logic` is selected, Kai-specific bundle preparation tests are run when `kai-research` is selected, and Cole-specific verification helper tests are run when `cole-varify` is selected.
+The scripts discover skills from `skills/*/SKILL.md`. Jay fixture tests cover Solidity, Move, and Anchor extraction; Kai tests cover runtime-aware bundle preparation and mixed-runtime rejection; Cole tests cover Solidity, Move, Anchor, and skip-build preflight behavior.

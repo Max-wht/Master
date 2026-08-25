@@ -29,6 +29,14 @@ EXCLUDED_DIRS = {
 }
 CONFIDENCE_VALUES = {"low", "medium", "high"}
 BASE_REFERENCES = ["shared-rules.md", "judging.md", "report-formatting.md", "senior-auditor-sop.md"]
+RUNTIME_REFERENCE = "runtime-semantics.md"
+RUNTIME_VALUES = {"auto", "solidity", "move", "anchor"}
+RUNTIME_EXTENSIONS = {
+    "solidity": {".sol"},
+    "move": {".move"},
+    "anchor": {".rs"},
+}
+CODE_FENCES = {"solidity": "solidity", "move": "move", "anchor": "rust"}
 
 AGENTS = [
     {
@@ -38,7 +46,7 @@ AGENTS = [
         "reference": "subAgents/agent-01-math-precision.md",
         "edge_types": {"reads", "writes", "state_transition"},
         "node_types": {"function", "state_var"},
-        "keywords": ["round", "decimal", "scale", "precision", "mulDiv", "wad", "ray", "cast", "uint", "int", "overflow", "underflow", "division", "fee", "bps"],
+        "keywords": ["round", "decimal", "scale", "precision", "mulDiv", "wad", "ray", "cast", "uint", "int", "u64", "u128", "checked", "overflow", "underflow", "division", "fee", "bps", "coin", "lamports", "spl"],
     },
     {
         "id": 2,
@@ -47,7 +55,7 @@ AGENTS = [
         "reference": "subAgents/agent-02-access-control.md",
         "edge_types": {"guards", "external_call", "precondition_written_by"},
         "node_types": {"function", "guard", "state_var"},
-        "keywords": ["owner", "admin", "role", "auth", "only", "init", "initialize", "upgrade", "delegatecall", "proxy", "permission", "guardian", "governance"],
+        "keywords": ["owner", "admin", "role", "auth", "only", "init", "initialize", "upgrade", "delegatecall", "proxy", "permission", "guardian", "governance", "signer", "cap", "capability", "has_one", "seeds", "pda", "authority"],
     },
     {
         "id": 3,
@@ -56,7 +64,7 @@ AGENTS = [
         "reference": "subAgents/agent-03-economic-security.md",
         "edge_types": {"external_call", "transfers_value", "reads", "writes"},
         "node_types": {"function", "state_var", "external_symbol"},
-        "keywords": ["token", "transfer", "balance", "price", "oracle", "swap", "fee", "reward", "incentive", "flash", "liquidity", "share", "asset"],
+        "keywords": ["token", "transfer", "balance", "price", "oracle", "swap", "fee", "reward", "incentive", "flash", "liquidity", "share", "asset", "coin", "treasurycap", "tokenaccount", "token-2022", "mint", "lamports"],
     },
     {
         "id": 4,
@@ -65,7 +73,7 @@ AGENTS = [
         "reference": "subAgents/agent-04-execution-trace.md",
         "edge_types": {"calls", "external_call", "writes", "guards", "state_transition", "precondition_written_by"},
         "node_types": {"function", "guard", "state_var"},
-        "keywords": ["entry", "execute", "process", "settle", "finalize", "callback", "branch", "state", "phase", "nonce", "queue"],
+        "keywords": ["entry", "execute", "process", "settle", "finalize", "callback", "branch", "state", "phase", "nonce", "queue", "context", "cpi", "module", "resource", "account"],
     },
     {
         "id": 5,
@@ -74,7 +82,7 @@ AGENTS = [
         "reference": "subAgents/agent-05-invariant.md",
         "edge_types": {"reads", "writes", "state_transition", "precondition_written_by"},
         "node_types": {"function", "state_var", "guard"},
-        "keywords": ["total", "supply", "balance", "debt", "asset", "liability", "cap", "limit", "reserve", "share", "accounting", "invariant"],
+        "keywords": ["total", "supply", "balance", "debt", "asset", "liability", "cap", "limit", "reserve", "share", "accounting", "invariant", "resource", "object", "pda", "mint", "tokenaccount"],
     },
     {
         "id": 6,
@@ -83,7 +91,7 @@ AGENTS = [
         "reference": "subAgents/agent-06-periphery.md",
         "edge_types": {"calls", "external_call", "reads", "writes"},
         "node_types": {"function", "contract_or_module", "external_symbol"},
-        "keywords": ["helper", "library", "util", "encode", "decode", "wrapper", "adapter", "router", "base", "abstract", "preview", "quote"],
+        "keywords": ["helper", "library", "util", "encode", "decode", "wrapper", "adapter", "router", "base", "abstract", "preview", "quote", "idl", "remaining_accounts", "uncheckedaccount"],
     },
     {
         "id": 7,
@@ -92,7 +100,7 @@ AGENTS = [
         "reference": "subAgents/agent-07-first-principles.md",
         "edge_types": {"reads", "writes", "guards", "external_call", "transfers_value", "state_transition"},
         "node_types": {"function", "state_var", "guard", "external_symbol"},
-        "keywords": ["assume", "trust", "intent", "model", "solvent", "permissionless", "permissioned", "canonical", "underlying", "source", "truth"],
+        "keywords": ["assume", "trust", "intent", "model", "solvent", "permissionless", "permissioned", "canonical", "underlying", "source", "truth", "type", "owner", "discriminator", "metadata"],
     },
     {
         "id": 8,
@@ -101,7 +109,7 @@ AGENTS = [
         "reference": "subAgents/agent-08-asymmetry.md",
         "edge_types": {"reads", "writes", "guards", "state_transition", "calls"},
         "node_types": {"function", "state_var", "guard"},
-        "keywords": ["deposit", "withdraw", "mint", "burn", "buy", "sell", "open", "close", "lock", "unlock", "admin", "user", "pause", "unpause"],
+        "keywords": ["deposit", "withdraw", "mint", "burn", "buy", "sell", "open", "close", "lock", "unlock", "admin", "user", "pause", "unpause", "split", "join", "close_account", "realloc"],
     },
     {
         "id": 9,
@@ -110,7 +118,7 @@ AGENTS = [
         "reference": "subAgents/agent-09-boundary.md",
         "edge_types": {"external_call", "transfers_value", "guards", "reads", "writes"},
         "node_types": {"function", "guard", "external_symbol"},
-        "keywords": ["payable", "address(0)", "zero", "sentinel", "bytes", "decode", "encode", "length", "deadline", "min", "max", "slippage", "fallback"],
+        "keywords": ["payable", "address(0)", "zero", "sentinel", "bytes", "decode", "encode", "length", "deadline", "min", "max", "slippage", "fallback", "pubkey::default", "system_program", "remaining_accounts", "uncheckedaccount"],
     },
     {
         "id": 10,
@@ -148,7 +156,8 @@ def main() -> int:
 
     prepare = subparsers.add_parser("prepare", help="Prepare Kai run artifacts")
     prepare.add_argument("project_root", nargs="?", default=".", type=Path)
-    prepare.add_argument("--files", nargs="*", default=None, help="Explicit Solidity files to scan, relative to project root unless absolute")
+    prepare.add_argument("--lang", default="auto", choices=sorted(RUNTIME_VALUES), help="Runtime language to prepare")
+    prepare.add_argument("--files", nargs="*", default=None, help="Explicit source files to scan, relative to project root unless absolute")
     prepare.add_argument("--run-id", default=None, help="Deterministic run id, mostly for tests")
     prepare.add_argument("--out-root", default="MasterWu/Kai", help="Kai output root, relative to project root unless absolute")
     prepare.add_argument("--jay-out", default="MasterWu/Jay", help="Jay output root, relative to project root unless absolute")
@@ -172,10 +181,11 @@ def command_prepare(args: argparse.Namespace) -> int:
         return 2
 
     print(f"Kai Research: preparing {project_root}")
-    scope_files = collect_scope(project_root, args.files)
+    runtime, scope_files = collect_scope(project_root, args.files, args.lang)
     if not scope_files:
-        print("No in-scope Solidity files found.", file=sys.stderr)
+        print(f"No in-scope {runtime} files found.", file=sys.stderr)
         return 2
+    print(f"Kai Research runtime: {runtime}")
 
     skill_dir = Path(__file__).resolve().parents[1]
     references = load_references(skill_dir / "references")
@@ -186,7 +196,7 @@ def command_prepare(args: argparse.Namespace) -> int:
         print(f"Required sibling Jay skill not found: {jay_script}", file=sys.stderr)
         return 2
 
-    if not run_jay(project_root, jay_script, args.jay_out, scope_files if args.files is not None else None):
+    if not run_jay(project_root, jay_script, args.jay_out, runtime, scope_files):
         return 1
 
     jay_dir = path_under_project(project_root, args.jay_out)
@@ -198,7 +208,7 @@ def command_prepare(args: argparse.Namespace) -> int:
         print(f"Kai run directory already exists: {run_dir}", file=sys.stderr)
         return 2
 
-    source_text = render_source(project_root, scope_files, run_id)
+    source_text = render_source(project_root, scope_files, run_id, runtime)
     scoped_rel_paths = [rel(project_root, path) for path in scope_files]
 
     (run_dir / "jay-slices").mkdir(parents=True, exist_ok=True)
@@ -210,6 +220,7 @@ def command_prepare(args: argparse.Namespace) -> int:
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
         "project_root": str(project_root),
+        "runtime": runtime,
         "jay_output": str(jay_dir),
         "scope_files": scoped_rel_paths,
         "agents": [],
@@ -222,7 +233,7 @@ def command_prepare(args: argparse.Namespace) -> int:
         slice_text = render_jay_slice(graph, agent, scoped_rel_paths)
         slice_path = run_dir / "jay-slices" / f"agent-{agent_name}.md"
         slice_path.write_text(slice_text, encoding="utf-8")
-        (agent_dir / "bundle.md").write_text(render_bundle(agent, run_id, project_root, agent_dir, references, slice_text, source_text), encoding="utf-8")
+        (agent_dir / "bundle.md").write_text(render_bundle(agent, run_id, project_root, runtime, agent_dir, references, slice_text, source_text), encoding="utf-8")
         (agent_dir / "report.md").write_text(render_pending_report(agent, run_id), encoding="utf-8")
         write_json(agent_dir / "hypotheses.json", empty_hypotheses(run_id, agent))
         manifest["agents"].append(
@@ -244,7 +255,9 @@ def command_prepare(args: argparse.Namespace) -> int:
     return 0
 
 
-def collect_scope(project_root: Path, explicit_files: list[str] | None) -> list[Path]:
+def collect_scope(project_root: Path, explicit_files: list[str] | None, requested_lang: str) -> tuple[str, list[Path]]:
+    if requested_lang not in RUNTIME_VALUES:
+        raise SystemExit(f"Unsupported runtime language: {requested_lang}")
     if explicit_files is not None:
         files = []
         for raw in explicit_files:
@@ -258,30 +271,92 @@ def collect_scope(project_root: Path, explicit_files: list[str] | None) -> list[
                 raise SystemExit(f"Explicit file outside project root: {path}")
             if not path.is_file():
                 raise SystemExit(f"Explicit file not found: {path}")
-            if path.suffix != ".sol":
-                raise SystemExit(f"Explicit file is not Solidity: {path}")
             files.append(path)
-        return sorted(dict.fromkeys(files), key=lambda item: rel(project_root, item))
+        files = sorted(dict.fromkeys(files), key=lambda item: rel(project_root, item))
+        runtime = resolve_explicit_runtime(project_root, files, requested_lang)
+        return runtime, files
 
-    files = []
-    for path in project_root.rglob("*.sol"):
-        parts = path.relative_to(project_root).parts
-        if any(part in EXCLUDED_DIRS for part in parts[:-1]):
-            continue
-        if excluded_solidity_name(path.name):
-            continue
-        files.append(path)
-    return sorted(files, key=lambda item: rel(project_root, item))
+    scopes = {
+        "solidity": collect_runtime_files(project_root, "solidity"),
+        "move": collect_runtime_files(project_root, "move"),
+        "anchor": collect_runtime_files(project_root, "anchor"),
+    }
+    if requested_lang != "auto":
+        return requested_lang, scopes[requested_lang]
+    present = [runtime for runtime, files in scopes.items() if files]
+    if len(present) > 1:
+        raise SystemExit(f"Multiple runtimes detected ({', '.join(present)}). Re-run with --lang <runtime> or an explicit --files list.")
+    if not present:
+        return "auto", []
+    runtime = present[0]
+    return runtime, scopes[runtime]
 
 
 def excluded_solidity_name(name: str) -> bool:
     return name.endswith(".t.sol") or "Test" in name or "Mock" in name
 
 
-def run_jay(project_root: Path, jay_script: Path, jay_out: str, scope_files: list[Path] | None) -> bool:
-    build_cmd = [sys.executable, str(jay_script), "build", str(project_root), "--out", jay_out, "--lang", "solidity"]
-    if scope_files is not None:
-        build_cmd.extend(["--files", *[rel(project_root, path) for path in scope_files]])
+def collect_runtime_files(project_root: Path, runtime: str) -> list[Path]:
+    files = []
+    if runtime == "solidity":
+        for path in project_root.rglob("*.sol"):
+            parts = path.relative_to(project_root).parts
+            if any(part in EXCLUDED_DIRS for part in parts[:-1]):
+                continue
+            if excluded_solidity_name(path.name):
+                continue
+            files.append(path)
+    elif runtime == "move":
+        for path in project_root.rglob("*.move"):
+            parts = path.relative_to(project_root).parts
+            if any(part in EXCLUDED_DIRS for part in parts[:-1]):
+                continue
+            files.append(path)
+    elif runtime == "anchor":
+        for path in project_root.rglob("*.rs"):
+            parts = path.relative_to(project_root).parts
+            if any(part in EXCLUDED_DIRS or part in {"target", ".anchor"} for part in parts[:-1]):
+                continue
+            if is_anchor_file(project_root, path):
+                files.append(path)
+    return sorted(files, key=lambda item: rel(project_root, item))
+
+
+def resolve_explicit_runtime(project_root: Path, files: list[Path], requested_lang: str) -> str:
+    detected = sorted({runtime_for_file(project_root, path, requested_lang) for path in files})
+    if requested_lang != "auto":
+        invalid = [path for path in files if path.suffix not in RUNTIME_EXTENSIONS[requested_lang]]
+        if invalid:
+            raise SystemExit(f"Explicit file does not match --lang {requested_lang}: {invalid[0]}")
+        return requested_lang
+    if len(detected) != 1:
+        raise SystemExit(f"Explicit files span multiple runtimes ({', '.join(detected)}); pass one runtime at a time.")
+    return detected[0]
+
+
+def runtime_for_file(project_root: Path, path: Path, requested_lang: str) -> str:
+    if path.suffix == ".sol":
+        return "solidity"
+    if path.suffix == ".move":
+        return "move"
+    if path.suffix == ".rs":
+        if requested_lang == "anchor" or is_anchor_file(project_root, path):
+            return "anchor"
+    raise SystemExit(f"Unsupported explicit source file for Kai runtime scan: {path}")
+
+
+def is_anchor_file(project_root: Path, path: Path) -> bool:
+    if path.suffix != ".rs":
+        return False
+    text = path.read_text(errors="ignore")
+    if any(marker in text for marker in ("#[program]", "#[derive(Accounts)]", "anchor_lang::prelude", "Context<")):
+        return True
+    return (project_root / "Anchor.toml").is_file() and "programs" in path.relative_to(project_root).parts
+
+
+def run_jay(project_root: Path, jay_script: Path, jay_out: str, runtime: str, scope_files: list[Path]) -> bool:
+    build_cmd = [sys.executable, str(jay_script), "build", str(project_root), "--out", jay_out, "--lang", runtime]
+    build_cmd.extend(["--files", *[rel(project_root, path) for path in scope_files]])
     if not run_command(build_cmd, "Jay build"):
         return False
     validate_cmd = [sys.executable, str(jay_script), "validate", str(path_under_project(project_root, jay_out) / "jay-logic.json")]
@@ -306,7 +381,7 @@ def path_under_project(project_root: Path, raw: str) -> Path:
 
 
 def load_references(references_dir: Path) -> dict[str, str]:
-    required = BASE_REFERENCES + [agent["reference"] for agent in AGENTS]
+    required = BASE_REFERENCES + [RUNTIME_REFERENCE] + [agent["reference"] for agent in AGENTS]
     out = {}
     for name in required:
         path = references_dir / name
@@ -316,18 +391,20 @@ def load_references(references_dir: Path) -> dict[str, str]:
     return out
 
 
-def render_source(project_root: Path, scope_files: list[Path], run_id: str) -> str:
+def render_source(project_root: Path, scope_files: list[Path], run_id: str, runtime: str) -> str:
     lines = [
         "# Kai Source Bundle",
         "",
         f"- Run: `{run_id}`",
         f"- Project root: `{project_root}`",
+        f"- Runtime: `{runtime}`",
         f"- Files: `{len(scope_files)}`",
         "",
     ]
+    fence = CODE_FENCES.get(runtime, "")
     for path in scope_files:
         relative = rel(project_root, path)
-        lines.extend([f"## File: `{relative}`", "", "```solidity"])
+        lines.extend([f"## File: `{relative}`", "", f"```{fence}".rstrip()])
         lines.append(path.read_text(errors="ignore"))
         lines.extend(["```", ""])
     return "\n".join(lines).rstrip() + "\n"
@@ -440,7 +517,7 @@ def render_line_link_rows(items: list[dict]) -> list[str]:
     return lines
 
 
-def render_bundle(agent: dict, run_id: str, project_root: Path, agent_dir: Path, references: dict[str, str], slice_text: str, source_text: str) -> str:
+def render_bundle(agent: dict, run_id: str, project_root: Path, runtime: str, agent_dir: Path, references: dict[str, str], slice_text: str, source_text: str) -> str:
     parts = [
         f"# Kai Agent Bundle: {agent['id']:02d} {agent['slug']}",
         "",
@@ -455,6 +532,7 @@ def render_bundle(agent: dict, run_id: str, project_root: Path, agent_dir: Path,
         "",
         f"- Run id: `{run_id}`",
         f"- Project root: `{project_root}`",
+        f"- Runtime: `{runtime}`",
         "",
         "## Shared Rules",
         "",
@@ -471,6 +549,10 @@ def render_bundle(agent: dict, run_id: str, project_root: Path, agent_dir: Path,
         "## Senior Auditor SOP",
         "",
         references["senior-auditor-sop.md"],
+        "",
+        "## Runtime Semantics",
+        "",
+        references[RUNTIME_REFERENCE],
         "",
         "## Specialist Prompt",
         "",
