@@ -75,7 +75,7 @@ python3 "$SKILL_DIR/scripts/kai_prepare.py" validate-hypotheses <path/to/hypothe
 
 1. `math-precision`: rounding, decimal scale, casts, overflows, precision loss.
 2. `access-control`: permissions, initialization, role escalation, proxy/delegatecall.
-3. `economic-security`: token behavior, external dependencies, prices, incentives, flash-loan value extraction.
+3. `economic-security`: token behavior, external dependencies, prices, incentives, flash-loan value extraction; includes the `market-security` sub-branch for market stress, product-specific risk controls, solvency, and loss allocation (see `references/subAgents/agent-03-economic-security.md`). This remains one agent.
 4. `execution-trace`: entry-to-state paths, cross-transaction state, branching, external calls.
 5. `invariant`: conservation, coupled state, caps, view/write consistency.
 6. `periphery`: helper, library, encoder, wrapper, base contract surfaces.

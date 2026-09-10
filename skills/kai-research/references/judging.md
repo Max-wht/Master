@@ -1,5 +1,7 @@
 # Finding Validation
 
+Kai uses these gates to screen candidate hypotheses, not to issue final verdicts. For `market-security`, an attack path may instead be a market-stress path through normal protocol operations. In Gates 1–2, trace the actual price/time sequence, configuration, updates, liquidations, and recovery mechanisms; unverified market inputs remain explicit assumptions requiring validation. In Gate 3, a reachable market move followed by ordinary user/keeper activity or a protocol transition can qualify without a malicious actor or profitable trigger. Gate 4 still requires identifiable material harm caused by a concrete protocol mechanism beyond ordinary investment losses or intended risk allocation. These exceptions do not waive reachability or evidence requirements.
+
 Every finding passes four sequential gates. Fail any gate → **rejected** or **demoted** to lead. Later gates are not evaluated for failed findings.
 
 You are not defending the code. The job of these gates is to verify the attacker's claimed exploit actually fires end-to-end — anything that interrupts the attack between the attacker's call and the harm means the agent's claim does not execute, and only then does it fail to qualify as a finding.
