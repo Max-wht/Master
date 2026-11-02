@@ -1,110 +1,89 @@
-# Report Format
+# Private Audit Output Contract
 
-`candidates.json` keeps the deduped Kai hypotheses. `wreport.md` is the human report. `results.json` is written only after strict Judge outputs are merged.
+New outputs use schema 2.0.0. Readers accept 1.0.0 Kai, candidates, Judge and results; legacy hypotheses normalize as vulnerability candidates. Legacy bounty_recommendation is read for compatibility only and is replaced by recommendation in new output. Existing directory paths and candidate ids remain unchanged.
 
-## Candidate IDs
+## Candidate data
 
-Candidates use internal ids only:
+candidates.json preserves review_type (vulnerability/trust-risk/design-risk/hardening/engineering-quality), scenario, applicability, existing_controls, recommendation, tradeoffs and missing_context alongside evidence, counterevidence and provenance. Per-source review_details retain disagreements after deduplication; different review types do not merge automatically. Audit context is retained at run level.
 
-```text
-finding-001
-finding-002
-```
-
-Do not expose old finding prefixes in report headings, PoC filenames, or test commands.
-
-## Draft wreport
-
-`collect` writes `MasterWu/cole/runs/<run-id>/wreport.md` with one section per deduped candidate:
-
-```markdown
-## Finding 1: title
-<!-- candidate_id: finding-001 -->
-
-### Description
-
-### Impact
-```
-
-The draft has no severity. Severity is assigned only after Judge validation.
-
-## Judge Output
-
-Each Judge writes `judge.json` with:
+## Complete Judge
 
 ```json
 {
-  "schema_version": "1.0.0",
+  "schema_version": "2.0.0",
   "candidate_id": "finding-001",
-  "classification": "High",
-  "verdict": "High",
-  "title": "Finding title",
+  "review_status": "complete",
+  "review_type": "trust-risk",
+  "classification": "Info",
+  "verdict": "Info",
+  "title": "...",
   "finding_summary": "...",
   "required_conditions": [
-    {"condition": "...", "status": "true", "evidence": "..."}
+    {
+      "condition": "...",
+      "status": "depend on role",
+      "evidence": "..."
+    }
   ],
-  "reachability": "...",
+  "reachability": "Known trusted-role operation; explain the specific gap.",
   "code_reality": "...",
   "protocol_semantics": "...",
   "impact": "...",
-  "bounty_recommendation": "Submit bounty",
-  "poc": {"path": "", "test_command": "", "test_result": "not-run", "notes": ""}
+  "scenario": "Specific failure or protection gap; attacks need a concrete trace.",
+  "applicability": "Why this matters to this project; identify inspected docs/tests for absence claims.",
+  "existing_controls": "What is enforced, what is documented, and what remains unverified.",
+  "recommendation": "Actionable proposed improvement, not a patch.",
+  "tradeoffs": "Operational, compatibility and maintenance costs; explain if none identified.",
+  "missing_context": [],
+  "poc": {
+    "path": "",
+    "test_command": "",
+    "test_result": "not-run",
+    "notes": "Source evidence sufficient; no execution test performed."
+  }
 }
 ```
 
-`classification` and `verdict` must be exactly one of:
+All illustrated fields are required except poc, whose default is empty/not-run. All five scenario/applicability/existing_controls/recommendation/tradeoffs fields require nonempty text; explain unknown/not applicable explicitly. Complete results require missing_context empty and an exact classification/verdict. Invalid additionally requires nonempty rejection_reason, explaining refutation or unmet reporting threshold. Use triage-policy.md for condition statuses and type/severity constraints.
 
-```text
-High
-Medium
-Low
-Info
-Gas
-Invalid
+## Pending Judge
+
+```json
+{
+  "schema_version": "2.0.0",
+  "candidate_id": "finding-001",
+  "review_status": "needs_context",
+  "review_type": "trust-risk",
+  "title": "...",
+  "finding_summary": "...",
+  "scenario": "Specific failure or protection gap; attacks need a concrete trace.",
+  "applicability": "Why this matters to this project; identify inspected docs/tests for absence claims.",
+  "existing_controls": "What is enforced, what is documented, and what remains unverified.",
+  "recommendation": "Actionable proposed improvement, not a patch.",
+  "tradeoffs": "Operational, compatibility and maintenance costs; explain if none identified.",
+  "missing_context": [
+    {
+      "question": "Which authority controls the proxy in the audited deployment?",
+      "required_evidence": "Deployment address, chain, block reference and verified proxy admin/custody configuration."
+    }
+  ],
+  "poc": {
+    "path": "",
+    "test_command": "",
+    "test_result": "not-run",
+    "notes": "Source evidence sufficient; no execution test performed."
+  }
+}
 ```
 
-Do not accept fuzzy labels such as conditional severity, possible severity, likely validity, or any separate missing-proof bucket. If evidence is not enough for an exact classification, the Judge must ask for the missing context instead of writing a mergeable `judge.json`.
+needs_context requires nonempty question and required_evidence strings for each missing-context item. Never include classification, verdict, severity or final_id, even null. Known partial reasoning may be included, but unresolved conditions must not be fabricated as false.
 
-`required_conditions[].status` must be exactly one of:
+## Merge and resume
 
-```text
-true
-false
-depend on role
-```
+Every manifest candidate must have valid Judge JSON; missing files, duplicate ids, extra candidates and malformed records still block merging. apply-judges writes complete findings and pending_questions separately to results.json. Pending entries retain candidate_id, original candidate and source hypotheses, evidence, questions and Judge output. They have no final id or classification and do not affect severity counts. Coverage validation considers both collections. Supply new evidence to the same pending Judge, replace its output, then rerun apply-judges; do not recollect or renumber candidates merely to resume.
 
-Do not use `Unproven`, `unknown`, `unclear`, or similar labels. Missing proof must become `false`, role-only reachability must become `depend on role`, or the Judge must ask for more evidence before writing `judge.json`.
+Completed final ids keep High -> H-n, Medium -> M-n, Low -> L-n, Info -> I-n, Gas -> G-n, Invalid -> Invalid-n. Candidate ids are the stable cross-run review reference; final presentation numbering can change when pending reviews finish.
 
-## Final IDs
+## Human report
 
-`apply-judges` assigns final ids in report order:
-
-```text
-High -> H-1, H-2
-Medium -> M-1, M-2
-Low -> L-1, L-2
-Info -> I-1, I-2
-Gas -> G-1, G-2
-Invalid -> Invalid-1, Invalid-2
-```
-
-Final `wreport.md` headings use bracketed ids:
-
-```markdown
-## [H-1] Finding title
-```
-
-## Final wreport Sections
-
-Each final finding must contain:
-
-```markdown
-### Finding Summary
-### Required Conditions
-### Reachability
-### Code Reality
-### Protocol Semantics
-### Impact
-### Verdict
-### Bounty Recommendation
-```
+Drafts show candidate descriptions and scenarios without severity. Final wreport.md contains Finding Summary, Required Conditions, Reachability, Code Reality, Protocol Semantics, Impact, Verdict, Recommendation, Review Type, Scenario, Applicability, Existing Controls, Tradeoffs, Source Evidence and Validation. Include rejection reason for Invalid. A separate Pending Client Questions section lists unresolved candidates and required evidence without severity. Report skipped builds and unperformed PoCs explicitly; never imply execution validation from source review alone.

@@ -1,11 +1,11 @@
 ---
 name: kai-research
-description: "Jay-guided large smart-contract vulnerability hypothesis search. Use when Codex needs to prepare and run parallel specialist agents over Solidity, Move, or Anchor code to find candidate vulnerabilities, evidence paths, and validation leads without writing PoCs, modifying target code, or issuing final vulnerability verdicts."
+description: "Jay-guided large smart-contract private-audit research. Use when Codex needs to prepare and run parallel specialist agents over Solidity, Move, or Anchor code to find vulnerability, trust/design risk, hardening, and engineering-quality candidates with evidence and validation leads without writing PoCs, modifying target code, or issuing final vulnerability verdicts."
 ---
 
 # Kai Research
 
-Prepare Jay-guided bundles for large Solidity, Move, or Anchor audits, then run 12 specialist agents in parallel. Kai searches for candidate vulnerabilities only; a later validation skill must prove or reject them.
+Prepare Jay-guided bundles for large Solidity, Move, or Anchor audits, then run 12 specialist agents in parallel. Kai researches private-audit candidates without final severity; Cole verifies vulnerabilities, informational protection gaps and actionable engineering suggestions, and separately retains questions requiring client evidence. Normal authority and generic best-practice checklists are background, not findings.
 
 ## Quick Start
 
@@ -31,6 +31,14 @@ python3 "$SKILL_DIR/scripts/kai_prepare.py" prepare <project-root> --lang anchor
 
 If the user does not provide a project root, use the current working directory. Kai writes worktree artifacts under `MasterWu/Kai/runs/<run-id>/` and requires sibling skill `jay-logic`; stop if Jay is unavailable or fails validation.
 
+Optional client context (relative to project root or absolute):
+
+```bash
+python3 "$SKILL_DIR/scripts/kai_prepare.py" prepare <project-root> --context audit-context.md
+```
+
+Preparation snapshots supplied context and indexes README/docs/tests/deployment/configuration materials in `audit-context.json` and the manifest. Every agent receives these materials alongside source. Read indexed files on demand; distinguish code facts, client statements, verified deployment settings and assumptions. Supporting material does not expand source scope or the Jay graph. Never infer missing tests from bundle/index absence.
+
 ## Workflow
 
 ### Turn 1: Discover
@@ -46,6 +54,7 @@ If the user does not provide a project root, use the current working directory. 
 2. Build `MasterWu/Kai/runs/<run-id>/source.md` from all in-scope source files with runtime-appropriate code fences.
 3. Build 12 Jay graph slices from `MasterWu/Jay/jay-logic.json`, `functions.md`, `entry-flows.md`, and `line-links.tsv`.
 4. Build one bundle per agent:
+   - audit context and supporting material index
    - full `source.md`
    - `references/shared-rules.md`
    - `references/runtime-semantics.md`
@@ -86,6 +95,8 @@ python3 "$SKILL_DIR/scripts/kai_prepare.py" validate-hypotheses <path/to/hypothe
 11. `trust-gap`: access x economics x asymmetry gaps.
 12. `flow-gap`: execution x periphery x protocol-intent gaps.
 
+Each specialty also performs its bounded private-audit extension in its reference file. All 12 retain their original focus; access-control owns governance protection gaps, economic-security owns market stress, execution-trace owns lifecycle recovery, first-principles owns mechanism/intent review, and periphery owns consequential maintainability and gas review. Every agent checks relevant test/documentation gaps within its specialty without quotas.
+
 ## Runtime Rules
 
 - Use `references/runtime-semantics.md` before translating an EVM idea into Move or Anchor.
@@ -95,7 +106,7 @@ python3 "$SKILL_DIR/scripts/kai_prepare.py" validate-hypotheses <path/to/hypothe
 
 ## Output Contract
 
-Each `hypotheses.json` must use schema version `1.0.0` and contain only vulnerability hypotheses, not final verdicts or severity ratings. Every hypothesis needs source evidence, Jay refs when available, an attack sketch, false-positive reasons, and next validation steps.
+Each `hypotheses.json` uses schema `2.0.0` and the type-specific contract in `references/report-formatting.md`. Preserve source evidence, Jay refs, scenario, applicability, controls, recommendations/tradeoffs, counterevidence and missing-context questions. Readers accept legacy `1.0.0` vulnerability inputs. Kai never assigns final verdicts or severity.
 
 ## References
 

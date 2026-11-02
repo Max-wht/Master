@@ -1,6 +1,6 @@
 ---
 name: cole-varify
-description: "Validate Kai Research hypotheses after $kai-research. Use when Codex needs to preflight Solidity, Move, or Anchor builds, normalize and deduplicate Kai hypotheses, launch strict Judge subagents, reject fuzzy severity labels, create minimal runtime-appropriate PoCs, run local tests, and produce wreport.md under MasterWu/cole/."
+description: "Validate Kai Research hypotheses after $kai-research. Use when Codex needs to preflight Solidity, Move, or Anchor builds, normalize and deduplicate Kai hypotheses, launch strict Judge subagents, retain client-context questions separately, create minimal runtime-appropriate PoCs when needed, run local tests, and produce wreport.md under MasterWu/cole/."
 ---
 
 # Cole Varify
@@ -38,8 +38,8 @@ If `--skip-local-build` is used, continue only in logic-only mode: do not create
 1. **Preflight first.** Validate the Kai run, ensure reports are complete, detect the build system, and run the minimum build command. If the project does not build, stop. With `--skip-local-build`, skip build detection and continue only with first-layer source logic review.
 2. **Collect candidates.** Run `collect` to write normalized and deduplicated hypotheses to `MasterWu/cole/runs/<run-id>/candidates.json` and a draft `wreport.md`.
 3. **Prepare strict Judge tasks.** Run `prepare-judges` to create one bundle per deduped finding under `MasterWu/cole/runs/<run-id>/judges/`.
-4. **Launch Judge subagents in waves of at most 6.** Each subagent reads only its `bundle.md`, writes `judge.json` and `judge.md`, and must classify the finding exactly as `High`, `Medium`, `Low`, `Info`, `Gas`, or `Invalid`.
-5. **Reject fuzzy output.** Run `validate-judges`. If a Judge returns a fuzzy label, missing proof, or asks for more context, do not merge it; follow up with that subagent until it returns one exact classification.
+4. **Launch Judge subagents in waves of at most 6.** Each subagent reads its `bundle.md` first, then relevant indexed source/docs/tests/config, and writes `judge.json` and `judge.md`. Complete reviews classify exactly as `High`, `Medium`, `Low`, `Info`, `Gas`, or `Invalid`; unresolved reviews use `review_status: needs_context` without severity.
+5. **Reject fuzzy output.** Run `validate-judges`. Reject malformed or fuzzy classifications. A structurally valid `needs_context` review is merged separately as a pending question, allowing complete reviews to proceed.
 6. **Create PoCs only after triage and only when preflight status is `passed`.** Read `references/poc-policy.md` before writing tests. Use non-Cole runtime-specific PoC names and do not modify target contracts or modules. In `skipped-local-build` mode, do not create PoCs or run tests.
 7. **Write final results and report.** Run `apply-judges` to write `results.json` and overwrite `wreport.md` with the strict Judge sections.
 
@@ -53,7 +53,7 @@ python3 "$SKILL_DIR/scripts/cole_varify.py" validate-results MasterWu/cole/runs/
 
 When using Codex, launch Judge tasks from `judges/manifest.json` with `multi_agent_v1.spawn_agent` in batches of at most 6. Give each subagent only its assigned `bundle.md` path and tell it to write the configured `judge.json` and `judge.md`. Close completed agents before launching the next batch.
 
-If `validate-judges` fails because a Judge output is fuzzy or incomplete, send that same subagent the validation error and ask it to return one exact classification. Do not run `apply-judges` until every Judge output validates.
+If `validate-judges` fails, send the same subagent its structural validation errors. Do not require a fabricated classification: use a valid `needs_context` record when evidence is missing. Run `apply-judges` after every output is either valid complete or valid pending. Resume a pending Judge with the same candidate id and new evidence, then merge again.
 
 ## Output Contract
 
@@ -68,7 +68,9 @@ Default output root is `MasterWu/cole/`. For a Kai run id `<run-id>`, Cole write
 
 When `preflight.json` has `status: "skipped-local-build"`, results must use empty PoC path and command, `poc.test_result: "not-run"` or `"blocked"`, and report that local build was skipped and PoC validation was not performed.
 
-Every final result item must include:
+New Kai/Cole contracts use schema `2.0.0`; readers accept legacy `1.0.0`. Jay is unchanged. See `references/report-format.md` for the complete and pending JSON shapes. Results include `findings` and independent `pending_questions`, preserving audit context and candidate provenance.
+
+Every completed result item must include:
 
 - `candidate_id`: internal `finding-001` style id.
 - `final_id`: `[H-1]`, `[M-1]`, `[L-1]`, `[I-1]`, `[G-1]`, or `[Invalid-1]` style id without brackets in JSON.
@@ -76,7 +78,7 @@ Every final result item must include:
 - `required_conditions[].status`: exactly `true`, `false`, or `depend on role`; never `Unproven`.
 - source hypotheses, evidence, PoC path/test command/test result, and the full strict Judge result.
 
-No final output may use labels such as `Conditional Medium`, `Potential High`, `Possible Low`, `Likely Valid`, or a separate missing-proof bucket. If proof is missing, the Judge must ask for the exact missing context instead of producing a mergeable result.
+No severity may be conditional or fuzzy. `needs_context` is a review state, not a severity: provide exact questions and required evidence without classification or final id. New trust/design risks and hardening/engineering suggestions are Info; meaningful gas-only improvements retain Gas. Normal authority and generic best-practice advice do not qualify; actual permission bypass remains a vulnerability.
 
 ## References
 

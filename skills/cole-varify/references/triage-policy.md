@@ -1,35 +1,30 @@
-# Triage Policy
+# Private Audit Triage Policy
 
-Cole validates hypotheses. It does not search for more leads.
+Cole verifies candidates; it does not search for unrelated leads. Check the review_type independently of category and final severity.
 
-For every candidate, answer these in order:
+1. Restore the claim, relevant actor, property and evidence. Separate code facts, documented intent, verified deployment settings and assumptions.
+2. Read the source path and all relevant guards, constraints, dependencies and recovery mechanisms. Consult indexed docs/tests/config and client context as needed. Do not infer deployment custody from a bare address.
+3. Challenge the claim: examine counterevidence, compensating controls, justified boundaries and accepted risks. Documentation of intended behavior is relevant but does not by itself settle whether a protection gap exists.
+4. Apply the correct evidence gate:
+   - vulnerability: concrete reachable trigger and proved nontrivial impact. Profit is not required; normal-operation failures, availability, accounting and market-stress failures can qualify. Real permission bypass remains a vulnerability even in admin code.
+   - trust-risk/design-risk: concrete protection gap, scenario, affected users, existing controls and why they are insufficient. Normal owner power, upgradeability or absent timelock alone is not reportable.
+   - hardening: project-specific mitigation benefit and implementation/operational tradeoffs; no invented exploit required.
+   - engineering-quality: consequential test/docs/maintenance gap or meaningful gas benefit tied to an actual operation. Cite inspected test/doc scope before asserting absence. Exclude naming/formatting preferences and speculative refactors.
+5. Complete or defer the review as specified below. Convergence changes investigation priority, not proof or severity.
 
-1. **Trigger:** Which externally callable function or transaction sequence starts the path?
-2. **Actor:** Can an ordinary user trigger it, or does it require owner/admin/governance/keeper permissions?
-3. **Guard:** Which modifiers, require checks, allowlists, or state preconditions block or allow the path?
-4. **State/value effect:** What state, balance, price, accounting, permission, or message effect changes?
-5. **Impact:** Can the effect produce user loss, protocol loss, insolvency, stuck funds, unauthorized control, broken mint/burn accounting, griefing, UX degradation, or gas-only waste?
-6. **Design boundary:** Is this behavior documented/intended, a governance choice, a configuration risk, or a code-level bug?
+## Classification
 
-Apply these questions using runtime-native evidence. For Move, check signer/resource/capability ownership, type identity, abort/resource state, and coin/object movement. For Anchor, check account constraints, signer bit, PDA seeds/bump, owner/discriminator, token program/mint/token-account ownership, CPI targets, and lamport/token deltas.
+Completed results have exactly High, Medium, Low, Info, Gas, or Invalid. No conditional severity.
 
-Use only these final classifications:
+- High/Medium/Low are for verified vulnerability impact; retain the existing evidence-based severity distinctions. Do not downgrade real permission bypass because the affected function is privileged.
+- Trust/design risks and hardening/engineering suggestions are Info, regardless of hypothetical worst-case loss. Gas-only improvements retain Gas. A real exploit discovered during such review is explicitly retyped vulnerability with justification in protocol_semantics.
+- Info requires real facts and a specific gap or actionable benefit. Normal well-protected authority and generic recommendations fail the reporting threshold.
+- Invalid means counterevidence refutes the claim or a demonstrated reporting-threshold failure. Supply rejection_reason. Missing information is not counterevidence and is not false.
 
-- `High`
-- `Medium`
-- `Low`
-- `Info`
-- `Gas`
-- `Invalid`
+## Conditions and pending context
 
-Rules:
+For complete results, condition status is true (evidenced), false (disproved), or depend on role (a known trusted-role prerequisite). High/Medium/Low/Gas require all conditions true. Info permits depend on role but no false conditions. A real role-boundary bug can have true conditions when the actor's capability and failure are proved; do not mistake an unauthorized escalation for normal trusted-role authority.
 
-- `High`, `Medium`, and `Low` require source evidence, reachable attack path, protocol semantic mismatch, and proved non-gas impact.
-- `Info` is for real code/design facts that are not bounty-grade security impact.
-- `Gas` is for gas-only findings.
-- `Invalid` is for false conditions, unreachable paths, intended design behavior, normal trusted-role authority, or unclosed impact.
-- Do not output conditional severity or a missing-proof category. If exact classification is impossible from current evidence, ask for the missing code/config/docs/PoC context and do not merge the Judge result.
-- Required condition status must be exactly `true`, `false`, or `depend on role`.
-- `High`, `Medium`, `Low`, and `Gas` require every listed required condition to be `true`.
-- `Info` may include `depend on role` for real trusted-role or design-risk notes, but cannot include `false`.
-- `Invalid` requires at least one required condition to be `false` or `depend on role`.
+If a necessary fact is unresolved, return review_status needs_context with specific questions and required evidence. Do not assign classification/verdict/final_id. Do not call an unknown fact false. The parent merges independent complete reviews and pending_questions together. After evidence arrives, rerun the corresponding Judge with the same candidate_id, change it to complete only if support is sufficient, and apply-judges again. Do not discard the original candidate provenance.
+
+Use runtime-native evidence: Move signer/resource/capability/type and module boundaries; Anchor constraints, signers, PDA seeds, account owner/discriminator, CPI target, token program/mint/authority and balance effects. Keep Solidity atomicity, checked arithmetic versus casts, proxy model and active fork semantics explicit.

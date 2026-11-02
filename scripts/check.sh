@@ -101,6 +101,7 @@ check_kai_research() {
     echo "Kai prepare should fail when Jay is missing" >&2
     exit 1
   fi
+  "$PYTHON" "$ROOT/tests/test_private_audit.py" kai
   "$PYTHON" "$ROOT/tests/test_kai_research.py" \
     "$project/MasterWu/Kai/runs/check-kai" \
     "$project/MasterWu/Kai/runs/check-kai-explicit" \
@@ -117,6 +118,7 @@ check_cole_varify() {
   [[ -f "$skill_dir/scripts/cole_varify.py" ]] || return 0
 
   "$PYTHON" "$ROOT/tests/test_cole_varify.py" "$skill_dir/scripts/cole_varify.py"
+  "$PYTHON" "$ROOT/tests/test_private_audit.py" cole
 }
 
 checked=0

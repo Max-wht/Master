@@ -57,3 +57,5 @@ Skip-local-build mode:
 - Use `poc.test_result: "not-run"` or `"blocked"`.
 - Use `poc.notes: "Skipped because --skip-local-build was used."`.
 - Do not classify an execution-dependent issue as `High`, `Medium`, or `Low` without exact evidence.
+
+Private-audit reviews: source/docs-backed Info does not require a PoC. Do not invent an exploit for a design or engineering suggestion. A needs_context review may record existing partial test evidence, but must not claim final validation. Keep missing configuration as a question. Preserve preflight requirements for all new tests and PoCs.

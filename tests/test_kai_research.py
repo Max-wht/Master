@@ -28,7 +28,7 @@ def load_json(path: Path) -> dict:
 
 def assert_valid_hypotheses(path: Path, agent_id: int, agent_name: str) -> None:
     data = load_json(path)
-    assert data["schema_version"] == "1.0.0"
+    assert data["schema_version"] == "2.0.0"
     assert data["agent_id"] == agent_id
     assert data["agent_name"] == agent_name
     assert isinstance(data["hypotheses"], list)
@@ -40,7 +40,7 @@ def assert_valid_hypotheses(path: Path, agent_id: int, agent_name: str) -> None:
 
 def check_default_run(run_dir: Path) -> None:
     manifest = load_json(run_dir / "spawn-manifest.json")
-    assert manifest["schema_version"] == "1.0.0"
+    assert manifest["schema_version"] == "2.0.0"
     assert manifest["run_id"] == "check-kai"
     assert manifest["runtime"] == "solidity"
     assert len(manifest["agents"]) == 12

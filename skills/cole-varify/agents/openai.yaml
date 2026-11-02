@@ -1,4 +1,4 @@
 interface:
   display_name: "Cole Varify"
   short_description: "Verify Kai hypotheses across Solidity, Move, and Anchor"
-  default_prompt: "Use $cole-varify to validate Kai hypotheses, prepare strict Judge subagents, reject fuzzy severity labels, and produce MasterWu/cole/runs/<run-id>/wreport.md."
+  default_prompt: "Use $cole-varify to validate Kai hypotheses, prepare strict Judge subagents, separate complete findings from pending client questions, and produce MasterWu/cole/runs/<run-id>/wreport.md."

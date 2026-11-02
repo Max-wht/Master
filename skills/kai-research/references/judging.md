@@ -1,66 +1,32 @@
-# Finding Validation
+# Candidate Evidence Gates
 
-Kai uses these gates to screen candidate hypotheses, not to issue final verdicts. For `market-security`, an attack path may instead be a market-stress path through normal protocol operations. In Gates 1–2, trace the actual price/time sequence, configuration, updates, liquidations, and recovery mechanisms; unverified market inputs remain explicit assumptions requiring validation. In Gate 3, a reachable market move followed by ordinary user/keeper activity or a protocol transition can qualify without a malicious actor or profitable trigger. Gate 4 still requires identifiable material harm caused by a concrete protocol mechanism beyond ordinary investment losses or intended risk allocation. These exceptions do not waive reachability or evidence requirements.
+Kai outputs hypotheses and validation leads, never confirmed findings or severity. Confidence measures support for the stated claim, not impact or bounty eligibility.
 
-Every finding passes four sequential gates. Fail any gate → **rejected** or **demoted** to lead. Later gates are not evaluated for failed findings.
+## 1. Establish the claim and review type
 
-You are not defending the code. The job of these gates is to verify the attacker's claimed exploit actually fires end-to-end — anything that interrupts the attack between the attacker's call and the harm means the agent's claim does not execute, and only then does it fail to qualify as a finding.
+Use vulnerability, trust-risk, design-risk, hardening, or engineering-quality independently of the technical category. Identify the property, concrete gap, or improvement opportunity. An actual permission bypass is a vulnerability, not an informational governance concern.
 
-## Gate 1 — Attack execution
+## 2. Check evidence and applicability
 
-Trace the agent's claimed attack path from caller to harm. Read every guard, check, modifier, and constraint that sits on that path. Confirm that none of them interrupts the attack before the exploit step fires.
-- A specific guard / check / modifier on the attack path interrupts the claimed exploit step before harm occurs (quote the exact line and trace it) → **REJECTED** (or **DEMOTE** if a related code smell remains)
-- The supposed interruption is speculative ("probably wouldn't happen", "the caller would notice", "the deployer would set X") → **clears**, continue
+Trace the relevant callers, guards, state changes, and compensating controls. Read docs/tests/config where needed. Separate verified facts from assumptions. A contradictory guard defeats the claimed path only if it actually interrupts the relevant step. Speculative deployment choices do not prove safety or danger.
 
-## Gate 2 — Reachability
+- Vulnerability: show a reachable trigger and concrete nontrivial harm, including loss, stuck assets, availability, unauthorized control, or broken accounting. Self-harm or ordinary intended investment loss alone is insufficient.
+- Trust/design risk: show the specific capability or mechanism, affected users/operations, failure scenario, existing protections, and why the gap matters. Normal authority alone is insufficient; no fabricated unprivileged attacker is needed.
+- Hardening: show a project-specific failure scenario mitigated by the change, existing protection, expected benefit, and costs. Do not claim an exploit has been established.
+- Engineering quality: demonstrate a consequential test/documentation/maintenance gap or meaningful gas improvement in an actual operation. Identify what was inspected and a concrete fix or test. No formatting or naming preferences.
 
-Prove the vulnerable state exists in a live deployment.
+## 3. Challenge the claim
 
-- Structurally impossible (enforced invariant prevents it) → **REJECTED**
-- Requires privileged actions outside normal operation → **DEMOTE**
-- Achievable through normal usage or common token behaviors → **clears**, continue
+Actively look for enforced invariants, inherited checks, recovery paths, justified trust boundaries, supported-token restrictions, and tests contradicting the claim. Intended design is evidence to assess, not automatic rejection or acceptance. A refuted claim is a rejected lead; an unresolved fact is a context question. Do not promote a lead merely because other agents agree.
 
-## Gate 3 — Trigger
+## 4. State support and next validation
 
-Prove an unprivileged actor executes the attack.
+Use high confidence for complete source-backed reasoning with established preconditions; medium for concrete evidence with limited unverified assumptions; low for a specific unresolved trail. Explain missing evidence directly. Quantify numerical/economic claims with reachable values; label illustrative inputs as assumptions. Recommendations are not evidence of a bug.
 
-- Only trusted roles can trigger → **DEMOTE**
-- Unprivileged actor triggers profitably → **clears**, continue
+## Market security
 
-## Gate 4 — Impact
+Preserve the market-security branch of economic-security. Start with truthful prices and normal user/keeper behavior. Trace price/time sequence, configuration, updates, liquidation, liquidity, and recovery. A reachable market move and ordinary protocol transition may trigger material mechanism-caused harm without an attacker or profitable trigger. Separate this from normal investment loss or intended risk allocation. Unverified market inputs remain explicit validation requirements.
 
-Prove material harm to an identifiable victim.
+## Patterns are questions, not verdicts
 
-- Self-harm only → **REJECTED**
-- Dust-level, no compounding → **DEMOTE**
-- Material loss to identifiable victim → **CONFIRMED**
-
-## Confidence
-
-Start at **100**, deduct: partial attack path **-20**, bounded non-compounding impact **-15**, requires specific (but achievable) state **-10**. Confidence ≥ 80 gets description + fix. Below 80 gets description only.
-
-## Safe patterns (do not flag)
-
-- `unchecked` in 0.8+ (but verify the reasoning is correct)
-- Explicit narrowing casts in 0.8+ (reverts on overflow)
-- MINIMUM_LIQUIDITY burn on first deposit
-- SafeERC20 (`safeTransfer`/`safeTransferFrom`)
-- `nonReentrant` (only flag cross-contract attacks)
-- Two-step admin transfer
-- Consistent protocol-favoring rounding unless compounding or zero-rounding
-
-## Lead promotion
-
-Before finalizing leads, promote where warranted:
-
-- **Cross-contract echo.** Same root cause confirmed as FINDING in one contract → promote in every contract where the identical pattern appears.
-- **Multi-agent convergence.** 2+ agents flagged same area, lead was demoted (not rejected) → promote to FINDING at confidence 75.
-- **Partial-path completion.** Only weakness is incomplete trace but path is reachable and unguarded → promote to FINDING at confidence 75, description only.
-
-## Leads
-
-High-signal trails for manual investigation. No confidence score, no fix — title, code smells, and what remains unverified.
-
-## Do Not Report
-
-Linter/compiler issues, gas micro-opts, naming, NatSpec. Admin privileges by design. Missing events. Centralization without exploit path. Implausible preconditions (but fee-on-transfer, rebasing, blacklisting ARE plausible for contracts accepting arbitrary tokens).
+SafeERC20, nonReentrant, two-step transfers, minimum-liquidity burns, and protocol-favoring rounding do not establish whole-system safety. Verify coverage and semantics. Explicit Solidity narrowing integer casts truncate; checked arithmetic does not make casts safe. Reverts normally roll back transaction state; partial effects require evidence of caught failures, separate transactions, or externally observable intermediate state. Account for compiler, runtime, fork, and deployment semantics before applying historical exploit patterns.
