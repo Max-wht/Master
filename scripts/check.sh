@@ -18,6 +18,22 @@ then
   PYTHON="$VENV/bin/python"
 fi
 
+if [[ "$SKILL_FILTER" == "all" || "$SKILL_FILTER" == anchor-* ]]; then
+  if ! "$PYTHON" - <<'PY' >/dev/null 2>&1
+import sys
+from importlib.metadata import version
+assert sys.version_info >= (3, 11)
+assert version("tree-sitter") == "0.26.0"
+assert version("tree-sitter-rust") == "0.24.2"
+PY
+  then
+    VENV="$ROOT/.venv-check"
+    [[ -x "$VENV/bin/python" ]] || "$PYTHON" -m venv "$VENV"
+    "$VENV/bin/python" -m pip install -q --disable-pip-version-check PyYAML -r "$ROOT/skills/anchor-jay/scripts/requirements.txt"
+    PYTHON="$VENV/bin/python"
+  fi
+fi
+
 export PYTHONPYCACHEPREFIX="$TMP/pycache"
 
 if [[ ! -f "$VALIDATOR" ]]; then
@@ -121,6 +137,16 @@ check_cole_varify() {
   "$PYTHON" "$ROOT/tests/test_private_audit.py" cole
 }
 
+check_anchor() {
+  local name
+  name="$(basename "$1")"
+  case "$name" in
+    anchor-jay|anchor-kai|anchor-cole)
+      "$PYTHON" "$ROOT/tests/test_anchor_audit.py" "${name#anchor-}"
+      ;;
+  esac
+}
+
 checked=0
 while IFS= read -r skill_dir; do
   echo "Checking $(basename "$skill_dir")"
@@ -129,6 +155,7 @@ while IFS= read -r skill_dir; do
   check_jay_logic "$skill_dir"
   check_kai_research "$skill_dir"
   check_cole_varify "$skill_dir"
+  check_anchor "$skill_dir"
   checked=$((checked + 1))
 done < <(selected_skill_dirs)
 

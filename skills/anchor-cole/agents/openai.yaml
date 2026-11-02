@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anchor Cole"
+  short_description: "Verify Anchor findings and produce audit reports"
+  default_prompt: "Use $anchor-cole to complete the Anchor DeFi audit phase for this project."

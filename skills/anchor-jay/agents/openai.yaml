@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anchor Jay"
+  short_description: "Map Anchor accounts and instruction semantics"
+  default_prompt: "Use $anchor-jay to complete the Anchor DeFi audit phase for this project."

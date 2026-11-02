@@ -29,7 +29,18 @@ selected_skill_names() {
     echo "Unknown skill: $SKILL_FILTER" >&2
     exit 2
   fi
-  echo "$SKILL_FILTER"
+  case "$SKILL_FILTER" in
+    anchor-kai)
+      echo anchor-jay
+      echo anchor-kai
+      ;;
+    anchor-cole)
+      echo anchor-jay
+      echo anchor-kai
+      echo anchor-cole
+      ;;
+    *) echo "$SKILL_FILTER" ;;
+  esac
 }
 
 install_skills() {
@@ -49,14 +60,14 @@ install_skills() {
 
 case "$TARGET" in
   codex)
-    install_skills "${CODEX_HOME:-$HOME/.codex}/skills"
+    install_skills "${MASTERWU_CODEX_SKILLS_DIR:-${CODEX_HOME:-$HOME/.codex}/skills}"
     ;;
   claude)
-    install_skills "$HOME/.claude/skills"
+    install_skills "${MASTERWU_CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
     ;;
   all)
-    install_skills "${CODEX_HOME:-$HOME/.codex}/skills"
-    install_skills "$HOME/.claude/skills"
+    install_skills "${MASTERWU_CODEX_SKILLS_DIR:-${CODEX_HOME:-$HOME/.codex}/skills}"
+    install_skills "${MASTERWU_CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
     ;;
   *)
     usage

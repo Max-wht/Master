@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anchor Kai"
+  short_description: "Research Anchor DeFi audit candidates"
+  default_prompt: "Use $anchor-kai to complete the Anchor DeFi audit phase for this project."
