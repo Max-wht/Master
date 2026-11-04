@@ -74,11 +74,13 @@ agents/<id-name>/report.md
 agents/<id-name>/hypotheses.json
 ```
 
-Run agents 1-12 concurrently, then wait for completion. Do not create a central summary report. After completion, check that each `report.md` no longer contains `PENDING_KAI_AGENT_OUTPUT` and each `hypotheses.json` validates:
+Run agents 1-12 concurrently, then wait for completion. Do not create a central research summary report; the subsequent global semantic grouping handoff is required. After completion, check that each `report.md` no longer contains `PENDING_KAI_AGENT_OUTPUT` and each `hypotheses.json` validates:
 
 ```bash
 python3 "$SKILL_DIR/scripts/kai_prepare.py" validate-hypotheses <path/to/hypotheses.json>
 ```
+
+After structural validation, hand off all twelve outputs to `cole-varify collect`. The parent must complete its global semantic grouping using `dedup-bundle.md` and `dedup-decisions.json`, then run `apply-dedup` before any Judge dispatch. Compare all candidates across agents/batches; preserve source records, different review types and uncertain duplicates. Per-agent validation alone does not complete the Kai-to-Cole handoff. Read the sibling Cole `references/semantic-dedup.md` for the contract.
 
 ## Agents
 

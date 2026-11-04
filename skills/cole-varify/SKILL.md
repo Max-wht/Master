@@ -1,6 +1,6 @@
 ---
 name: cole-varify
-description: "Validate Kai Research hypotheses after $kai-research. Use when Codex needs to preflight Solidity, Move, or Anchor builds, normalize and deduplicate Kai hypotheses, launch strict Judge subagents, retain client-context questions separately, create minimal runtime-appropriate PoCs when needed, run local tests, and produce wreport.md under MasterWu/cole/."
+description: "Validate Kai Research hypotheses after $kai-research. Use when Codex needs to preflight Solidity, Move, or Anchor builds, collect Kai hypotheses for parent semantic grouping, launch strict Judge subagents, retain client-context questions separately, create minimal runtime-appropriate PoCs when needed, run local tests, and produce wreport.md under MasterWu/cole/."
 ---
 
 # Cole Varify
@@ -14,6 +14,8 @@ Resolve `$SKILL_DIR` to this skill directory, then run:
 ```bash
 python3 "$SKILL_DIR/scripts/cole_varify.py" preflight <project-root> --run <project-root>/MasterWu/Kai/runs/<run-id>
 python3 "$SKILL_DIR/scripts/cole_varify.py" collect <project-root> --run <project-root>/MasterWu/Kai/runs/<run-id> --out MasterWu/cole
+# Parent reads dedup-bundle.md and completes dedup-decisions.json first.
+python3 "$SKILL_DIR/scripts/cole_varify.py" apply-dedup <project-root>/MasterWu/cole/runs/<run-id>/raw-candidates.json --decisions <project-root>/MasterWu/cole/runs/<run-id>/dedup-decisions.json
 python3 "$SKILL_DIR/scripts/cole_varify.py" prepare-judges <project-root>/MasterWu/cole/runs/<run-id>/candidates.json
 ```
 
@@ -36,8 +38,8 @@ If `--skip-local-build` is used, continue only in logic-only mode: do not create
 ## Workflow
 
 1. **Preflight first.** Validate the Kai run, ensure reports are complete, detect the build system, and run the minimum build command. If the project does not build, stop. With `--skip-local-build`, skip build detection and continue only with first-layer source logic review.
-2. **Collect candidates.** Run `collect` to write normalized and deduplicated hypotheses to `MasterWu/cole/runs/<run-id>/candidates.json` and a draft `wreport.md`.
-3. **Prepare strict Judge tasks.** Run `prepare-judges` to create one bundle per deduped finding under `MasterWu/cole/runs/<run-id>/judges/`.
+2. **Collect and globally group candidates.** Run `collect` to write all original hypotheses to `raw-candidates.json`, a full index in `dedup-bundle.md`, and pending `dedup-decisions.json`. The parent reads [semantic-dedup.md](references/semantic-dedup.md), compares all candidates by root cause/mechanism/conditions/repair site across specialists and batches, and writes a complete partition including singletons. Preserve different review types and uncertain duplicates separately. Do not assess validity or assign severity during grouping. Run `apply-dedup` to validate coverage/provenance and generate `candidates.json`, `dedup-record.json` and draft `wreport.md`.
+3. **Prepare strict Judge tasks.** Run `prepare-judges` to create one bundle per validated semantic group under `MasterWu/cole/runs/<run-id>/judges/`. Incomplete/stale grouping blocks dispatch. The manifest binds candidates and locks their content/ids; changed grouping requires a new Cole run. Existing preflight refresh and pending Judge resume retain the same candidates. Historical inputs require explicit `--allow-legacy-candidates` and are marked as lacking semantic deduplication.
 4. **Launch Judge subagents in waves of at most 6.** Each subagent reads its `bundle.md` first, then relevant indexed source/docs/tests/config, and writes `judge.json` and `judge.md`. Complete reviews classify exactly as `High`, `Medium`, `Low`, `Info`, `Gas`, or `Invalid`; unresolved reviews use `review_status: needs_context` without severity.
 5. **Reject fuzzy output.** Run `validate-judges`. Reject malformed or fuzzy classifications. A structurally valid `needs_context` review is merged separately as a pending question, allowing complete reviews to proceed.
 6. **Create PoCs only after triage and only when preflight status is `passed`.** Read `references/poc-policy.md` before writing tests. Use non-Cole runtime-specific PoC names and do not modify target contracts or modules. In `skipped-local-build` mode, do not create PoCs or run tests.
@@ -61,8 +63,9 @@ Default output root is `MasterWu/cole/`. For a Kai run id `<run-id>`, Cole write
 
 - `MasterWu/cole/runs/<run-id>/preflight.json` when build preflight passes or local build is skipped.
 - `MasterWu/cole/runs/<run-id>/build-blocker.md` when build preflight fails.
-- `MasterWu/cole/runs/<run-id>/candidates.json` after collection.
-- `MasterWu/cole/runs/<run-id>/wreport.md` as the draft after collection and as the final report after Judge merge.
+- `MasterWu/cole/runs/<run-id>/raw-candidates.json`, `dedup-bundle.md` and `dedup-decisions.json` after collection.
+- `MasterWu/cole/runs/<run-id>/candidates.json` and `dedup-record.json` after validated semantic grouping.
+- `MasterWu/cole/runs/<run-id>/wreport.md` as the draft after semantic grouping and as the final report after Judge merge.
 - `MasterWu/cole/runs/<run-id>/judges/manifest.json` plus one Judge bundle per finding.
 - `MasterWu/cole/runs/<run-id>/results.json` after strict Judge merge.
 
@@ -82,6 +85,7 @@ No severity may be conditional or fuzzy. `needs_context` is a review state, not 
 
 ## References
 
+- `references/semantic-dedup.md`: parent global grouping, decision contract, provenance and dispatch lock.
 - `references/build-detection.md`: build-system detection and blocker handling.
 - `references/triage-policy.md`: reachability, design-vs-bug, and verdict rules.
 - `references/poc-policy.md`: PoC directory, test scope, and safety rules.

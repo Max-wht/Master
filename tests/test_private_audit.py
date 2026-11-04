@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from dedup_fixture import complete_dedup
 
 ROOT = Path(__file__).resolve().parents[1]
 KAI_PATH = ROOT / 'skills/kai-research/scripts/kai_prepare.py'
@@ -183,13 +184,13 @@ class ColePrivateTests(unittest.TestCase):
         self.assertTrue(cole.validate_judge_result(bad, 'finding-001'))
         self.assertTrue(cole.validate_judge_result(None, 'finding-001'))
 
-    def test_normalization_dedupe_preserves_details(self):
+    def test_group_aggregation_preserves_details(self):
         agent = dict(agent_id=2, agent_name='access-control', hypotheses_path=Path('hypotheses.json'))
         a = hypothesis()
         b = hypothesis(ident='KAI-02-002')
         b['recommendation'] = 'Use an independent role with bounded parameters.'
         b['missing_context'] = pending()['missing_context']
-        candidates = cole.dedupe_candidates([cole.normalize_hypothesis(agent, x) for x in (a, b)])
+        candidates = cole.dedupe_candidates([{**cole.normalize_hypothesis(agent, x), "dedupe_key": "parent-group"} for x in (a, b)])
         self.assertEqual(1, len(candidates))
         result = candidates[0]
         self.assertEqual(2, len(result['review_details']))
@@ -197,7 +198,7 @@ class ColePrivateTests(unittest.TestCase):
         self.assertEqual(b['missing_context'], result['missing_context'])
         self.assertEqual('medium', result['confidence'])
         other = {**a, 'review_type': 'vulnerability'}
-        self.assertEqual(2, len(cole.dedupe_candidates([cole.normalize_hypothesis(agent, x) for x in (a, other)])))
+        self.assertEqual(2, len(cole.dedupe_candidates([{**cole.normalize_hypothesis(agent, x), "dedupe_key": x["review_type"]} for x in (a, other)])))
 
     def test_cli_merge_pending_resume_and_malformed(self):
         with tempfile.TemporaryDirectory() as raw:
@@ -215,6 +216,7 @@ class ColePrivateTests(unittest.TestCase):
             proc = cli(COLE_PATH, 'collect', root, '--run', run)
             self.assertEqual(0, proc.returncode, proc.stderr)
             out = root / 'MasterWu/cole/runs/private-test'
+            complete_dedup(COLE_PATH, out)
             candidate_path = out / 'candidates.json'
             data = json.loads(candidate_path.read_text())
             self.assertEqual(audit_context, data['audit_context'])

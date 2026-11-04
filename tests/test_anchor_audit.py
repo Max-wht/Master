@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from dedup_fixture import complete_dedup
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -291,6 +292,7 @@ class ColeTests(unittest.TestCase):
         proc=cli(COLE,"collect",root,"--run",run)
         self.assertEqual(0,proc.returncode,proc.stderr)
         out=root / "MasterWu/Anchor/Cole/runs/regression"
+        complete_dedup(COLE, out)
         return run,manifest,out
 
     def test_merge_pending_resume_and_exact_poc_provenance(self):
@@ -334,12 +336,16 @@ class ColeTests(unittest.TestCase):
             prior=path.read_text(); data=load(path);data["agent_id"]=4;write(path,data)
             self.assertNotEqual(0,cli(COLE,"collect",root,"--run",run).returncode)
             path.write_text(prior)
-            report=Path(entry["report_path"]);report.write_text(kai.PENDING_MARKER)
+            report=Path(entry["report_path"]); prior_report=report.read_text(); report.write_text(kai.PENDING_MARKER)
             self.assertNotEqual(0,cli(COLE,"collect",root,"--run",run).returncode)
             report.write_text("completed")
+            prior_source=(run / "source.md").read_text()
             (run / "source.md").write_text("tampered source snapshot")
             self.assertNotEqual(0,cli(COLE,"collect",root,"--run",run).returncode)
             candidates=out / "candidates.json"
+            self.assertNotEqual(0,cli(COLE,"prepare-judges",candidates).returncode)
+            (run / "source.md").write_text(prior_source)
+            report.write_text(prior_report)
             self.assertEqual(0,cli(COLE,"prepare-judges",candidates).returncode)
             before=(out / "wreport.md").read_text()
             self.assertNotEqual(0,cli(COLE,"apply-judges",candidates).returncode)

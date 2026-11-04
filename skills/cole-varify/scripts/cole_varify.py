@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import shlex
@@ -11,6 +10,9 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import semantic_dedup
 
 SCHEMA_VERSION = "2.0.0"
 SUPPORTED_SCHEMAS = {"1.0.0", SCHEMA_VERSION}
@@ -67,10 +69,14 @@ def main() -> int:
     preflight.add_argument("--skip-local-build", action="store_true", help="Validate the Kai run but skip local build checks; logic-only verification mode")
     preflight.add_argument("--runtime", default="auto", choices=sorted(VALID_RUNTIME_VALUES), help="Override runtime build detection")
 
-    collect = subparsers.add_parser("collect", help="Collect, normalize, and deduplicate Kai hypotheses")
+    collect = subparsers.add_parser("collect", help="Collect all raw Kai hypotheses for parent semantic grouping")
     collect.add_argument("project_root", type=Path)
     collect.add_argument("--run", required=True, type=Path, help="Kai run directory")
     collect.add_argument("--out", default=DEFAULT_OUT, help="Cole output root, relative to project root unless absolute")
+
+    apply_dedup = subparsers.add_parser("apply-dedup", help="Validate parent semantic groups and write candidates.json")
+    apply_dedup.add_argument("raw_path", type=Path)
+    apply_dedup.add_argument("--decisions", required=True, type=Path)
 
     validate = subparsers.add_parser("validate-results", help="Validate Cole results.json")
     validate.add_argument("json_path", type=Path)
@@ -82,6 +88,7 @@ def main() -> int:
 
     prepare_judges = subparsers.add_parser("prepare-judges", help="Create one strict Judge bundle per deduped finding")
     prepare_judges.add_argument("candidates_path", type=Path)
+    prepare_judges.add_argument("--allow-legacy-candidates", action="store_true", help="Explicitly dispatch historical candidates without semantic grouping")
     prepare_judges.add_argument("--out", type=Path, default=None, help="Judge task directory; defaults to sibling judges/")
 
     validate_judges = subparsers.add_parser("validate-judges", help="Validate strict Judge outputs")
@@ -98,12 +105,14 @@ def main() -> int:
         return command_preflight(args)
     if args.command == "collect":
         return command_collect(args)
+    if args.command == "apply-dedup":
+        return command_apply_dedup(args.raw_path, args.decisions)
     if args.command == "validate-results":
         return command_validate_results(args.json_path, args.candidates)
     if args.command == "render-report":
         return command_render_report(args.json_path, args.out)
     if args.command == "prepare-judges":
-        return command_prepare_judges(args.candidates_path, args.out)
+        return command_prepare_judges(args.candidates_path, args.out, args.allow_legacy_candidates)
     if args.command == "validate-judges":
         return command_validate_judges(args.manifest_path)
     if args.command == "apply-judges":
@@ -182,41 +191,19 @@ def command_preflight(args: argparse.Namespace) -> int:
 
 
 def command_collect(args: argparse.Namespace) -> int:
-    project_root = resolve_project_root(args.project_root)
-    run_dir = resolve_under_project(project_root, args.run)
-    out_dir = cole_run_dir(project_root, args.out, run_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    kai = load_kai_run(run_dir)
-    if kai["errors"]:
-        for error in kai["errors"]:
-            print(error, file=sys.stderr)
+    try:
+        return semantic_dedup.collect(globals(), args)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(str(exc), file=sys.stderr)
         return 1
 
-    normalized = []
-    for agent in kai["agents"]:
-        data = agent["data"]
-        for item in data["hypotheses"]:
-            normalized.append(normalize_hypothesis(agent, item))
 
-    candidates = dedupe_candidates(normalized)
-    payload = {
-        "schema_version": SCHEMA_VERSION,
-        "run_id": run_dir.name,
-        "project_root": str(project_root),
-        "kai_run": str(run_dir),
-        "generated_at": now(),
-        "audit_context": kai["manifest"].get("audit_context", {}),
-        "source_hypothesis_count": len(normalized),
-        "candidate_count": len(candidates),
-        "candidates": candidates,
-    }
-    write_json(out_dir / "candidates.json", payload)
-    (out_dir / "wreport.md").write_text(render_draft_wreport(payload), encoding="utf-8")
-    print(f"Cole collected {len(normalized)} Kai hypotheses into {len(candidates)} candidates")
-    print(f"Wrote {out_dir / 'candidates.json'}")
-    print(f"Wrote {out_dir / 'wreport.md'}")
-    return 0
+def command_apply_dedup(raw_path: Path, decisions_path: Path) -> int:
+    try:
+        return semantic_dedup.apply(globals(), raw_path, decisions_path)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
 
 def command_validate_results(json_path: Path, candidates_path: Path | None = None) -> int:
@@ -245,14 +232,25 @@ def command_render_report(json_path: Path, out: Path | None = None) -> int:
     return 0
 
 
-def command_prepare_judges(candidates_path: Path, out: Path | None = None) -> int:
+def command_prepare_judges(candidates_path: Path, out: Path | None = None, allow_legacy_candidates: bool = False) -> int:
     data = load_json(candidates_path)
     errors = validate_candidates_payload(data)
+    if not errors:
+        try:
+            semantic_dedup.verify_candidates(globals(), data, candidates_path, allow_legacy_candidates)
+            semantic_dedup.check_lock(candidates_path.parent, data)
+            existing = (out or (candidates_path.parent / "judges")) / "manifest.json"
+            if existing.is_file():
+                errors.extend(semantic_dedup.check_binding(data, load_json(existing)))
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            errors.append(str(exc))
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
 
+    if "deduplication" not in data:
+        print("Historical candidates: semantic deduplication was not performed", file=sys.stderr)
     preflight_path = candidates_path.parent / "preflight.json"
     data = {**data, "preflight": load_json(preflight_path) if preflight_path.is_file() else {"status": "not-provided"}}
     judges_dir = out or (candidates_path.parent / "judges")
@@ -262,7 +260,9 @@ def command_prepare_judges(candidates_path: Path, out: Path | None = None) -> in
         "run_id": data.get("run_id", ""),
         "project_root": data.get("project_root", ""),
         "kai_run": data.get("kai_run", ""),
-        "candidates_path": str(candidates_path),
+        "candidates_path": str(candidates_path.resolve()),
+        "candidates_digest": semantic_dedup.candidate_digest(data),
+        "deduplication": data.get("deduplication", {"status": "not-performed", "method": "legacy"}),
         "max_parallel": MAX_JUDGE_PARALLEL,
         "judges": [],
     }
@@ -283,6 +283,10 @@ def command_prepare_judges(candidates_path: Path, out: Path | None = None) -> in
             }
         )
     write_json(judges_dir / "manifest.json", manifest)
+    semantic_dedup.write(candidates_path.parent / ".judge-lock.json", {
+        "candidates_digest": semantic_dedup.candidate_digest(data),
+        "manifest_path": str((judges_dir / "manifest.json").resolve()),
+    })
     print(f"Wrote {judges_dir / 'manifest.json'}")
     return 0
 
@@ -301,13 +305,18 @@ def command_validate_judges(manifest_path: Path) -> int:
 def command_apply_judges(candidates_path: Path, manifest_path: Path | None = None, results_out: Path | None = None, report_out: Path | None = None) -> int:
     candidates = load_json(candidates_path)
     candidate_errors = validate_candidates_payload(candidates)
+    if not candidate_errors:
+        try:
+            semantic_dedup.verify_candidates(globals(), candidates, candidates_path, allow_legacy=True)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            candidate_errors.append(str(exc))
     if candidate_errors:
         for error in candidate_errors:
             print(error, file=sys.stderr)
         return 1
 
     manifest = load_judge_manifest(manifest_path or (candidates_path.parent / "judges" / "manifest.json"))
-    judge_errors = validate_judge_outputs(manifest)
+    judge_errors = semantic_dedup.check_binding(candidates, manifest) + validate_judge_outputs(manifest)
     if judge_errors:
         for error in judge_errors:
             print(error, file=sys.stderr)
@@ -351,6 +360,8 @@ def command_apply_judges(candidates_path: Path, manifest_path: Path | None = Non
         "findings": findings,
         "pending_questions": pending_questions,
         "audit_context": candidates.get("audit_context", {}),
+        "deduplication": candidates.get("deduplication", {"status": "not-performed", "method": "legacy"}),
+        **({"dedup_stats": candidates["dedup_stats"]} if "dedup_stats" in candidates else {}),
     }
     preflight_path = candidates_path.parent / "preflight.json"
     if preflight_path.is_file():
@@ -751,7 +762,6 @@ def normalize_hypothesis(agent: dict, item: dict) -> dict:
         "why_might_be_false_positive": str(item.get("why_might_be_false_positive", "")),
         "next_validation_steps": [str(value) for value in item.get("next_validation_steps", [])],
         "extra": extra,
-        "dedupe_key": dedupe_key(item, evidence),
     }
 
 
@@ -768,13 +778,6 @@ def normalize_evidence(items: list[dict]) -> list[dict]:
             }
         )
     return out
-
-
-def dedupe_key(item: dict, evidence: list[dict]) -> str:
-    files = " ".join(sorted({entry["file"] for entry in evidence}))
-    raw = " ".join([str(item.get("review_type", "vulnerability")), str(item.get("category", "")), str(item.get("title", "")), str(item.get("claim", "")), files])
-    normalized = re.sub(r"[^a-z0-9]+", " ", raw.lower()).strip()
-    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:16]
 
 
 def dedupe_candidates(items: list[dict]) -> list[dict]:
@@ -1019,6 +1022,14 @@ def validate_judge_outputs(manifest: dict) -> list[str]:
     if not isinstance(manifest, dict):
         return ["validate_judge_outputs: input must be an object"]
     errors = []
+    if "candidates_digest" in manifest or "deduplication" in manifest:
+        try:
+            candidates_path = Path(manifest["candidates_path"])
+            candidates = load_json(candidates_path)
+            errors.extend(semantic_dedup.check_binding(candidates, manifest))
+            semantic_dedup.verify_candidates(globals(), candidates, candidates_path, allow_legacy=True)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            errors.append(str(exc))
     for field in ("schema_version", "max_parallel", "judges"):
         if field not in manifest:
             errors.append(f"judge manifest missing {field}")
@@ -1190,7 +1201,7 @@ def render_draft_wreport(data: dict) -> str:
         else:
             lines.append("- Impact is not yet verified by Judge.")
         lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+    return "\n".join(lines).rstrip() + "\n" + semantic_dedup.summary(data)
 
 
 def render_judge_bundle(data: dict, candidate: dict, output_json: Path, output_markdown: Path) -> str:
@@ -1202,6 +1213,8 @@ def render_judge_bundle(data: dict, candidate: dict, output_json: Path, output_m
         "Review exactly this candidate. Read this bundle first, then relevant source and indexed materials. Do not search for unrelated findings or modify target code.",
         f"Write JSON to `{output_json}` and human report to `{output_markdown}`.",
         "A needs_context output is a valid pending review, not a severity. Continue other reviews. Only complete results get a final classification.",
+        "Read every source_records hypothesis and preserve its conditions, counterevidence and uncertainties. Parent grouping is not evidence that a claim is valid.",
+        semantic_dedup.summary(data),
         policies,
         "## Candidate", "```json", json.dumps(candidate, indent=2), "```",
         "## Run Context", f"Project root: `{data.get('project_root', '')}`", f"Kai run: `{data.get('kai_run', '')}`",
@@ -1334,7 +1347,7 @@ def render_final_wreport(data: dict) -> str:
             for question in item.get("missing_context", []):
                 lines.extend([f"- {question['question']} Required evidence: {question['required_evidence']}"])
             lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+    return "\n".join(lines).rstrip() + "\n" + semantic_dedup.summary(data)
 
 
 def text_or_default(value: object, default: str) -> str:

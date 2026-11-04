@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from dedup_fixture import complete_dedup
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -297,6 +298,7 @@ def test_collect_writes_draft_wreport_without_old_ids(script: Path) -> None:
         run_cli(script, ["collect", str(project), "--run", str(run)])
 
         out_dir = project / "MasterWu" / "cole" / "runs" / "check-cole"
+        complete_dedup(script, out_dir, [[0, 1], [2]])
         candidates_path = out_dir / "candidates.json"
         candidates = json.loads(candidates_path.read_text(encoding="utf-8"))
         assert candidates["source_hypothesis_count"] == 3
@@ -332,7 +334,7 @@ def test_validate_judges_rejects_ambiguous_classification(script: Path) -> None:
                 "candidates": [candidate("finding-001", "Ambiguous fixture")],
             },
         )
-        run_cli(script, ["prepare-judges", str(candidates_path)])
+        run_cli(script, ["prepare-judges", str(candidates_path), "--allow-legacy-candidates"])
         manifest = json.loads((out_dir / "judges" / "manifest.json").read_text(encoding="utf-8"))
         output_json = Path(manifest["judges"][0]["output_json"])
         write_judge_output(output_json, "finding-001", "Conditional Medium")
@@ -362,7 +364,7 @@ def test_apply_judges_merges_only_exact_six_classifications(script: Path) -> Non
                 "candidates": candidates,
             },
         )
-        run_cli(script, ["prepare-judges", str(candidates_path)])
+        run_cli(script, ["prepare-judges", str(candidates_path), "--allow-legacy-candidates"])
         manifest = json.loads((out_dir / "judges" / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["max_parallel"] == 6
         for entry, classification in zip(manifest["judges"], classifications):
@@ -411,7 +413,7 @@ def test_validate_judges_rejects_unproven_condition_status(script: Path) -> None
                 "candidates": [candidate("finding-001", "Unproven fixture")],
             },
         )
-        run_cli(script, ["prepare-judges", str(candidates_path)])
+        run_cli(script, ["prepare-judges", str(candidates_path), "--allow-legacy-candidates"])
         manifest = json.loads((out_dir / "judges" / "manifest.json").read_text(encoding="utf-8"))
         write_judge_output(Path(manifest["judges"][0]["output_json"]), "finding-001", "Invalid", condition_status="Unproven")
         proc = run_cli(script, ["validate-judges", str(out_dir / "judges" / "manifest.json")], check=False)
@@ -438,7 +440,7 @@ def test_validate_judges_rejects_role_dependent_security_classification(script: 
                 "candidates": [candidate("finding-001", "Role fixture")],
             },
         )
-        run_cli(script, ["prepare-judges", str(candidates_path)])
+        run_cli(script, ["prepare-judges", str(candidates_path), "--allow-legacy-candidates"])
         manifest = json.loads((out_dir / "judges" / "manifest.json").read_text(encoding="utf-8"))
         write_judge_output(Path(manifest["judges"][0]["output_json"]), "finding-001", "Medium", condition_status="depend on role")
         proc = run_cli(script, ["validate-judges", str(out_dir / "judges" / "manifest.json")], check=False)
@@ -465,7 +467,7 @@ def test_info_accepts_role_dependent_condition(script: Path) -> None:
                 "candidates": [candidate("finding-001", "Info role fixture")],
             },
         )
-        run_cli(script, ["prepare-judges", str(candidates_path)])
+        run_cli(script, ["prepare-judges", str(candidates_path), "--allow-legacy-candidates"])
         manifest = json.loads((out_dir / "judges" / "manifest.json").read_text(encoding="utf-8"))
         write_judge_output(Path(manifest["judges"][0]["output_json"]), "finding-001", "Info", condition_status="depend on role")
         run_cli(script, ["validate-judges", str(out_dir / "judges" / "manifest.json")])

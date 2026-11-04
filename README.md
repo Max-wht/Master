@@ -14,7 +14,8 @@ isolated `.venv-check` for its Python dependencies.
    validate with `--require-semantics`.
 2. Run `anchor-kai` prepare, complete the twelve specialist tasks and validate
    their hypotheses.
-3. Run `anchor-cole` collect, prepare/validate Judges, and apply results. Run
+3. Run `anchor-cole` collect, complete parent global semantic grouping, run
+   apply-dedup, then prepare/validate Judges and apply results. Run
    preflight only when a PoC is needed; missing tools or an existing test harness
    records a blocker while source-sufficient review continues.
 
@@ -110,3 +111,28 @@ destinations with `MASTERWU_CODEX_SKILLS_DIR` and `MASTERWU_CLAUDE_SKILLS_DIR`
 without modifying the user's home directories. The existing install defaults
 are unchanged. Check the new pipeline with `./scripts/check.sh anchor-jay`,
 `anchor-kai`, or `anchor-cole`; the full check covers all six skills.
+
+## Global Kai-to-Cole semantic grouping
+
+Solidity (`kai-research` -> `cole-varify`) and standalone Anchor (`anchor-kai` ->
+`anchor-cole`) require the parent to group all research hypotheses before Judge
+dispatch. `collect` writes raw-candidates.json, dedup-bundle.md and a pending
+dedup-decisions.json. The parent compares root cause, failure mechanism, necessary
+conditions and repair site across all specialists and reading batches. Different
+wording/category/evidence files can describe one defect; different review types,
+independent causes and uncertain duplicates remain separate. No validity or
+severity filtering occurs here.
+
+Run `apply-dedup <raw-candidates.json> --decisions <dedup-decisions.json>` with the
+appropriate Cole script to validate an exhaustive, disjoint partition and write
+candidates.json, dedup-record.json and the draft report. Each original hypothesis
+is retained intact in source_records; reports show raw/group/reduced counts and
+reduction ratio. See each Cole skill's references/semantic-dedup.md for the JSON
+contract. Zero-candidate runs complete automatically.
+
+`prepare-judges` refuses incomplete/stale semantic inputs and locks candidate
+contents/ids after dispatch, including custom Judge directories. Changed grouping
+requires a new Cole run; preflight refresh and pending Judge resume keep the same
+candidates. Historical inputs are readable; new dispatch of old candidates
+requires explicit --allow-legacy-candidates and reports the lack of semantic
+deduplication. No additional model API, embeddings service or skill is required.

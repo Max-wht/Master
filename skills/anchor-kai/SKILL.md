@@ -26,7 +26,7 @@ Omit optional context/run-id as appropriate. --files seeds an explicit module cl
 python3 "$SKILL_DIR/scripts/anchor_kai.py" validate-hypotheses <agent-dir>/hypotheses.json
 ```
 
-Then invoke $anchor-cole. Graph, business map, source and client context are snapshotted per run. Source changes require a new research run.
+Then invoke $anchor-cole collect to create raw-candidates.json, dedup-bundle.md and pending dedup-decisions.json. The parent compares every candidate across agents/batches by root cause/mechanism/conditions/repair site, preserves different review types and uncertain duplicates separately, and runs apply-dedup before any Judge dispatch. Read the sibling anchor-cole references/semantic-dedup.md. Per-agent validation alone does not complete the Kai-to-Cole handoff. Graph, business map, source and client context are snapshotted per run. Source changes require a new research run.
 
 ## References
 

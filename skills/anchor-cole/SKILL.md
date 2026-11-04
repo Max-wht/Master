@@ -13,10 +13,14 @@ Verify the standalone Anchor Kai run; do not call cole-varify or search for unre
 
 ```bash
 python3 "$SKILL_DIR/scripts/anchor_cole.py" collect <project-root> --run <anchor-kai-run>
+# Parent reads dedup-bundle.md and completes dedup-decisions.json first.
+python3 "$SKILL_DIR/scripts/anchor_cole.py" apply-dedup <raw-candidates.json> --decisions <dedup-decisions.json>
 python3 "$SKILL_DIR/scripts/anchor_cole.py" prepare-judges <candidates.json>
 ```
 
-The collector rejects pending reports, wrong run/agent identities, missing/stale snapshots and invalid source/graph references. Output: MasterWu/Anchor/Cole/runs/<run-id>/.
+The collector rejects pending reports, wrong run/agent identities, missing/stale snapshots and invalid source/graph references. Output: MasterWu/Anchor/Cole/runs/<run-id>/. It writes all original hypotheses to raw-candidates.json, a full index in dedup-bundle.md and pending dedup-decisions.json. The parent reads [semantic-dedup.md](references/semantic-dedup.md), compares all candidates by root cause/mechanism/conditions/repair site across specialists and batches, then writes a complete partition including singletons. Keep different review types and uncertain duplicates separate. Grouping does not assign validity or severity. apply-dedup validates coverage/provenance before writing candidates.json, dedup-record.json and draft wreport.md. No Judge may start before completion.
+
+prepare-judges binds candidate contents and locks grouping/ids, including custom Judge directories. Changed grouping requires a new Cole run; preflight refresh and pending Judge resume retain the same candidates. Historical inputs require explicit --allow-legacy-candidates and are marked as lacking semantic deduplication.
 
 2. Launch one independent Judge per manifest candidate using the host's native subagent tool, in waves respecting its actual concurrency limit (manifest upper limit 6). Each reads bundle.md first, then exact source and relevant indexed tests/docs/config/dependencies. It writes judge.json and judge.md according to references/report-format.md.
 3. Complete only sufficiently evidenced classifications. Use needs_context without severity when a necessary fact is missing. Do not force classification because a build failed or another agent agreed.
@@ -44,6 +48,7 @@ Refresh Judge bundles after changed preflight/evidence. Preserve actual executed
 
 ## References
 
+- references/semantic-dedup.md: parent global grouping, decision contract, provenance and dispatch lock.
 - references/triage-policy.md: claim types, severity and pending evidence.
 - references/judge-rubric.md: Anchor-specific independent validation.
 - references/report-format.md: complete/pending schema 2.0.0.

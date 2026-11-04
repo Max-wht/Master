@@ -18,7 +18,7 @@ then
   PYTHON="$VENV/bin/python"
 fi
 
-if [[ "$SKILL_FILTER" == "all" || "$SKILL_FILTER" == anchor-* ]]; then
+if [[ "$SKILL_FILTER" == "all" || "$SKILL_FILTER" == anchor-* || "$SKILL_FILTER" == "cole-varify" ]]; then
   if ! "$PYTHON" - <<'PY' >/dev/null 2>&1
 import sys
 from importlib.metadata import version
@@ -158,5 +158,9 @@ while IFS= read -r skill_dir; do
   check_anchor "$skill_dir"
   checked=$((checked + 1))
 done < <(selected_skill_dirs)
+
+if [[ "$SKILL_FILTER" == "all" || "$SKILL_FILTER" == "cole-varify" || "$SKILL_FILTER" == "anchor-cole" ]]; then
+  "$PYTHON" "$ROOT/tests/test_semantic_dedup.py"
+fi
 
 echo "MasterWu skill checks passed ($checked skill(s))"

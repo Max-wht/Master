@@ -4,6 +4,8 @@ Standalone Anchor outputs use schema 2.0.0. Findings and pending questions keep 
 
 ## Candidate data
 
+Before new Judge dispatch, complete [global semantic grouping](semantic-dedup.md). `collect` writes raw hypotheses; `apply-dedup` writes final candidates. Final candidates add complete `source_records`, membership and root-cause/rationale fields. Run-level `deduplication` and `dedup_stats` retain completion, input/decision digests and reduction counts; historical inputs remain readable.
+
 candidates.json preserves review_type (vulnerability/trust-risk/design-risk/hardening/engineering-quality), scenario, applicability, existing_controls, recommendation, tradeoffs and missing_context alongside evidence, counterevidence and provenance. Per-source review_details retain disagreements after deduplication; different review types do not merge automatically. Audit context is retained at run level.
 
 ## Complete Judge
